@@ -1,0 +1,26 @@
+package com.example.ui.theme
+
+import androidx.compose.ui.graphics.Color
+
+val BackgroundDark = Color(0xFF131313)
+val SurfaceDark = Color(0xFF131313)
+val SurfaceContainer = Color(0xFF201f1f)
+val SurfaceContainerLow = Color(0xFF1c1b1b)
+val SurfaceContainerHigh = Color(0xFF2a2a2a)
+val SurfaceContainerHighest = Color(0xFF353534)
+val SurfaceVariant = Color(0xFF353534)
+val OnBackground = Color(0xFFe5e2e1)
+val OnSurface = Color(0xFFe5e2e1)
+val OnSurfaceVariant = Color(0xFFe2bfb0)
+val Primary = Color(0xFFffb694)
+val OnPrimary = Color(0xFF571f00)
+val PrimaryContainer = Color(0xFFff6a00)
+val OnPrimaryContainer = Color(0xFF571f00)
+val Secondary = Color(0xFFc8c6c5)
+val OnSecondary = Color(0xFF303030)
+val SecondaryContainer = Color(0xFF474747)
+val OnSecondaryContainer = Color(0xFFb6b5b4)
+val Outline = Color(0xFFa98a7d)
+val OutlineVariant = Color(0xFF5a4136)
+val SuccessGreen = Color(0xFF8ee7a4)
+val SuccessContainer = Color(0xFF183921)

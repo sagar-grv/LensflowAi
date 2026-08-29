@@ -1,0 +1,57 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Outer Viewfinder Frame Corners -->
+    <path
+        android:pathData="M34,42 L34,34 L42,34 M66,34 L74,34 L74,42 M74,66 L74,74 L66,74 M42,74 L34,74 L34,66"
+        android:strokeWidth="3.5"
+        android:strokeColor="#FFB77C"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Center Document Sheet -->
+    <path
+        android:pathData="M41,38 L60,38 L67,45 L67,70 L41,70 Z"
+        android:fillColor="#2B2930"
+        android:strokeWidth="1.5"
+        android:strokeColor="#6E3900" />
+
+    <!-- Document Fold Corner -->
+    <path
+        android:pathData="M60,38 L60,45 L67,45 Z"
+        android:fillColor="#FFB77C" />
+
+    <!-- Document Text Lines -->
+    <path
+        android:pathData="M46,47 L56,47 M46,53 L62,53 M46,59 L58,59 M46,65 L54,65"
+        android:strokeWidth="2"
+        android:strokeColor="#6CDBAC"
+        android:strokeLineCap="round" />
+
+    <!-- Glowing Scan Line Indicator across center -->
+    <path
+        android:pathData="M31,54 L77,54"
+        android:strokeWidth="2">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="31"
+                android:startY="54"
+                android:endX="77"
+                android:endY="54"
+                android:type="linear">
+                <item android:color="#00FFB77C" android:offset="0.0" />
+                <item android:color="#FFFFB77C" android:offset="0.5" />
+                <item android:color="#00FFB77C" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- AI Sparkle Icon on top-right -->
+    <path
+        android:pathData="M73,31 C73,31 75,34 78,34 C75,34 73,37 73,37 C73,37 71,34 68,34 C71,34 73,31 73,31 Z"
+        android:fillColor="#FFDCC1" />
+</vector>

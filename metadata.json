@@ -1,0 +1,6 @@
+{
+  "name": "LensFlow",
+  "description": "AI document scanner and productivity assistant with on-device processing and smart action extraction.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
