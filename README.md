@@ -84,6 +84,17 @@ LensFlow App Architecture
 
 ---
 
+## 📦 Downloads & GitHub Releases
+
+You can download pre-compiled APK packages, inspect releases, and access the web portal:
+
+- **GitHub Repository**: [https://github.com/lensflow/lensflow-ai](https://github.com/lensflow/lensflow-ai)
+- **GitHub Releases (All Versions & Changelogs)**: [https://github.com/lensflow/lensflow-ai/releases](https://github.com/lensflow/lensflow-ai/releases)
+- **Direct APK Package Download (v1.0.0)**: [Download LensFlow-v1.0.0-release.apk](https://github.com/lensflow/lensflow-ai/releases/latest/download/LensFlow-v1.0.0-release.apk)
+- **Official Web Portal & Web App**: [https://lensflow.app/download](https://lensflow.app/download)
+
+---
+
 ## 🔑 Google Gemini API Configuration
 
 To enable Gemini Cloud AI Mode:
