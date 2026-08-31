@@ -1,6 +1,6 @@
-# 🌟 LensFlow AI — Camera-First On-Device Document Productivity & Cross-Device Bridge
+# 🌟 LensFlow AI — Camera Document Productivity & Cross-Device Bridge
 
-> **Platform:** Android (Jetpack Compose & Kotlin) | **Vision Engine:** Google ML Kit Text Recognition | **Database:** Room Local SQLite | **Architecture:** Clean MVVM + Repository Pattern
+> **Platform:** Android (Jetpack Compose & Kotlin) | **Vision Engine:** Google ML Kit On-Device OCR + Google Gemini 2.5 Flash Cloud AI | **Database:** Room Local SQLite | **Architecture:** Clean MVVM + Repository Pattern
 
 ---
 
@@ -8,33 +8,42 @@
 
 **LensFlow AI** is a camera-first Android productivity application designed to convert physical documents, receipts, whiteboard notes, business cards, and invoices into structured, actionable digital workflows and checklists directly on your device.
 
-By leveraging **Google ML Kit's on-device OCR engine** (`com.google.mlkit:text-recognition`) paired with real-time heuristic entity extraction, LensFlow dynamically identifies amounts, line items, dates, bulleted action items, emails, and phone numbers in sub-50ms inference time without relying on cloud services. Scanned documents and action items persist locally via **Android Jetpack Room**, with one-tap cross-device clipboard sync and PDF export.
+LensFlow provides a **flexible dual-engine architecture**:
+1. **On-Device Offline OCR** via Google ML Kit (`com.google.mlkit:text-recognition`) with zero cloud dependencies and absolute privacy.
+2. **Online Cloud Multimodal AI** powered by Google Gemini 2.5 Flash via Google AI Studio API for smart multi-category extraction and summaries.
+
+Scanned documents and action items persist locally via **Android Jetpack Room**, with real-time text search, interactive checklists, cross-device PC clipboard sync, and native PDF export.
 
 ---
 
 ## ✨ Key Features
 
-### ⚡ 1. Real On-Device OCR & Dynamic Entity Extraction
-- **Zero-Cloud Vision Pipeline:** Powered by Google ML Kit on-device Text Recognition, extracting text from camera frames and gallery images entirely on the client processor.
+### ⚡ 1. Dual AI Engine: On-Device ML Kit & Google Gemini 2.5 Flash
+- **On-Device Privacy Engine:** Powered by Google ML Kit on-device Text Recognition, extracting text from camera frames and gallery images entirely on the client device.
+- **Google Gemini Cloud AI:** Integrated Google AI Studio API support. Add your API key in **PC Link & Settings** or via the home screen switcher to unlock cloud multimodal AI extraction.
 - **Dynamic Entity Parsing:** Real-time extraction of financial totals (`$`, `€`, `£`, `¥`), dates, bulleted checklist items (`•`, `-`, `1.`), business card contact information (emails and phone numbers), and invoice balance records.
-- **Privacy by Default:** Sensitive expense receipts, internal whiteboards, and client documents remain local on your device.
-- **Optional Cloud AI Mode:** Supports optional multimodal enrichment using Google Gemini Flash when an API key is provided.
+- **API Key Management:** Secure key storage with live connection testing, key visibility toggle, and one-tap access to Google AI Studio.
 
 ### 🗄️ 2. Room Database Local Persistence
-- **Offline-First Storage:** Scanned documents, OCR text, timestamps, latency metrics, and interactive checklist states persist locally in SQLite via Room.
+- **Offline-First Storage:** Scanned documents, OCR text, timestamps, and interactive checklist states persist locally in SQLite via Room.
 - **Reactive State Flow:** Room DAOs stream updates directly to Jetpack Compose UI via Kotlin `Flow` and `StateFlow`.
 
-### 📷 3. CameraX Viewfinder & Photo Import
+### 🔍 3. Interactive Productivity & Live Search
+- **Instant Search:** Real-time filtering across titles, raw text, and extracted action items.
+- **Interactive Checklists:** Tap checkboxes to check off tasks directly on the home screen, document detail cards, or the unified checklist screen.
+- **Batch Productivity Actions:** "Mark All Done", "Copy Checklist", and "Add Custom Action Task" affordances.
+
+### 📷 4. CameraX Viewfinder & Photo Import
 - **Live Framing HUD:** Real-time alignment corners, animated laser scan overlay, and quick document aspect guide.
 - **Hardware Controls:** Flashlight / torch toggle and front/back camera lens switching.
 - **System Photo Picker:** Seamless import of existing photos and high-resolution document images from the device gallery.
 
-### 💻 4. Cross-Device PC Bridge & Productivity Tools
+### 💻 5. Cross-Device PC Bridge & Productivity Tools
 - **Universal Clipboard Sync:** Copies formatted document checklists directly to the system clipboard for immediate desktop paste (`Ctrl+V` on laptop/PC).
 - **Native PDF Report Generation:** Creates formatted PDF summary reports using Android's native `PdfDocument` framework for sharing via Android system sheets.
 - **Intent Integrations:** One-tap export to native Google Calendar events and Email draft clients.
 
-### ♿ 5. Accessibility, Contrast & Night Vision
+### ♿ 6. Accessibility, Contrast & Night Vision
 - **Screen Reader Ready (TalkBack):** Full semantic annotations (`heading`, `contentDescription`, `role`, `testTag`) across all interactive components.
 - **WCAG AA Contrast Compliant:** High-contrast Material Design 3 dark palette (>4.5:1 text contrast).
 - **Accessible Touch Targets:** Minimum 48dp interactive touch targets across all buttons, chips, checkboxes, and navigation tabs.
@@ -48,11 +57,11 @@ By leveraging **Google ML Kit's on-device OCR engine** (`com.google.mlkit:text-r
 LensFlow App Architecture
 │
 ├── 📱 UI Layer (Jetpack Compose + Material 3)
-│   ├── HomeScreen (Dashboard, Telemetry, Filter Chips, Recent Scans)
+│   ├── HomeScreen (Dashboard, Search, Mode Toggle, Filter Chips, Recent Scans)
 │   ├── CameraScreen (CameraX Viewfinder, Torch, Lenses, Photo Picker)
 │   ├── ResultDetailsScreen (Interactive Checklists, Raw OCR Text, PDF & Clipboard Export)
-│   ├── TasksScreen (Aggregated Action Item Checklist & Progress Metrics)
-│   └── PcSettingsScreen (Clipboard Sync, Mirroring, Red-Light Mode, Engine Preferences)
+│   ├── TasksScreen (Aggregated Action Item Checklist, Filter, Add Task & Progress Metrics)
+│   └── PcSettingsScreen (Gemini API Key Setup, Clipboard Sync, Mirroring, Red-Light Mode)
 │
 ├── 🧠 Domain & Vision Pipeline
 │   ├── MlKitOcrEngine (Google ML Kit On-Device Text Recognition)
@@ -104,3 +113,4 @@ The project includes unit, repository, and screenshot tests:
 
 ## 📄 License
 Distributed under the Apache 2.0 License.
+

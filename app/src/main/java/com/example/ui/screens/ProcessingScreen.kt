@@ -119,7 +119,7 @@ fun ProcessingScreen(
 
                 Text(
                     text = if (isOffline) {
-                        "Running on-device Google ML Kit text recognition and parsing actionable entities in sub-50ms..."
+                        "Running on-device Google ML Kit text recognition and extracting actionable tasks..."
                     } else {
                         "Processing document with cloud multimodal AI model..."
                     },

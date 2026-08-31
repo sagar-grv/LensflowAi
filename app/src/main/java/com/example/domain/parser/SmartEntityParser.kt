@@ -14,7 +14,7 @@ object SmartEntityParser {
     fun parseActions(
         rawText: String,
         mode: String,
-        latencyMs: Long
+        latencyMs: Long = 0L
     ): List<ActionItem> {
         val trimmed = rawText.trim()
         if (trimmed.isBlank()) {
@@ -46,7 +46,7 @@ object SmartEntityParser {
                             id = UUID.randomUUID().toString(),
                             title = "Settle Expense ($amountStr)",
                             dateOrTime = dateMatch,
-                            details = totalLine ?: "Detected amount $amountStr in ${latencyMs}ms OCR.",
+                            details = totalLine ?: "Detected expense balance $amountStr.",
                             category = "Finance"
                         )
                     )
@@ -72,7 +72,7 @@ object SmartEntityParser {
                             id = UUID.randomUUID().toString(),
                             title = "Review Receipt (${lines.first().take(30)})",
                             dateOrTime = dateMatch,
-                            details = "Parsed ${lines.size} lines in ${latencyMs}ms.",
+                            details = "Parsed ${lines.size} lines from receipt.",
                             category = "Finance"
                         )
                     )
@@ -129,7 +129,7 @@ object SmartEntityParser {
                             id = UUID.randomUUID().toString(),
                             title = "Approve Invoice ($amountStr)",
                             dateOrTime = dateMatch,
-                            details = invoiceNo ?: "Processed via on-device OCR in ${latencyMs}ms.",
+                            details = invoiceNo ?: "Invoice total amount: $amountStr",
                             category = "Finance"
                         )
                     )
@@ -171,7 +171,7 @@ object SmartEntityParser {
                                 id = UUID.randomUUID().toString(),
                                 title = clean.ifBlank { "Action Item ${idx + 1}" }.take(50),
                                 dateOrTime = lineDate,
-                                details = "Parsed on-device in ${latencyMs}ms.",
+                                details = "Extracted milestone from document.",
                                 category = if (mode == "Whiteboard" || bl.contains("milestone", ignoreCase = true)) "Milestone" else "Task"
                             )
                         )
@@ -201,7 +201,7 @@ object SmartEntityParser {
                     id = UUID.randomUUID().toString(),
                     title = lines.first().take(45),
                     dateOrTime = "Today",
-                    details = "Parsed document text with on-device OCR.",
+                    details = "Parsed document text checklist.",
                     category = "Task"
                 )
             )

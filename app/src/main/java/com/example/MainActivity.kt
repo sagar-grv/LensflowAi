@@ -275,12 +275,19 @@ fun LensFlowApp(
                                 HomeScreen(
                                     scans = uiState.scans,
                                     selectedFilter = uiState.selectedCategoryFilter,
+                                    searchQuery = uiState.searchQuery,
+                                    onSearchQueryChange = { viewModel.setSearchQuery(it) },
                                     onFilterSelect = { viewModel.setCategoryFilter(it) },
                                     onScanClick = { viewModel.setScreenState(ScreenState.CAMERA_VIEW) },
                                     onQuickSampleClick = { mode -> viewModel.triggerSampleScan(mode) },
                                     onRecordClick = { record -> viewModel.selectScanRecord(record) },
                                     onDeleteClick = { id -> viewModel.deleteScan(id) },
+                                    onToggleItem = { scanId, itemId -> viewModel.toggleActionItem(scanId, itemId) },
+                                    onCopyRecord = { record -> viewModel.copyToClipboard(record) },
                                     isOffline = uiState.isOfflineMode,
+                                    geminiApiKey = uiState.geminiApiKey,
+                                    onToggleOffline = { viewModel.toggleOfflineMode(it) },
+                                    onSaveApiKey = { viewModel.saveGeminiApiKey(it) },
                                     telemetry = uiState.telemetry
                                 )
                             }
@@ -289,7 +296,10 @@ fun LensFlowApp(
                                     scans = uiState.scans,
                                     onToggleItem = { scanId, itemId -> viewModel.toggleActionItem(scanId, itemId) },
                                     onCalendarClick = { item -> viewModel.createCalendarEvent(item) },
-                                    onEmailClick = { item -> viewModel.sendEmailSummary(item) }
+                                    onEmailClick = { item -> viewModel.sendEmailSummary(item) },
+                                    onMarkAllCompleted = { viewModel.markAllTasksCompleted() },
+                                    onCopyAllTasks = { viewModel.copyAllTasksToClipboard() },
+                                    onAddActionItem = { scanId, title, type -> viewModel.addActionItem(scanId, title, type) }
                                 )
                             }
                             NavTab.PC_SETTINGS -> {
@@ -301,7 +311,12 @@ fun LensFlowApp(
                                     isRedLightMode = uiState.isRedLightMode,
                                     onToggleRedLight = { viewModel.toggleRedLightMode(it) },
                                     onToggleMirror = { viewModel.toggleScreenMirror() },
-                                    onToggleClipboardSync = { viewModel.toggleClipboardSync(it) }
+                                    onToggleClipboardSync = { viewModel.toggleClipboardSync(it) },
+                                    geminiApiKey = uiState.geminiApiKey,
+                                    isTestingKey = uiState.isTestingKey,
+                                    onSaveApiKey = { viewModel.saveGeminiApiKey(it) },
+                                    onClearApiKey = { viewModel.clearGeminiApiKey() },
+                                    onTestApiKey = { viewModel.testGeminiConnection(it) }
                                 )
                             }
                         }

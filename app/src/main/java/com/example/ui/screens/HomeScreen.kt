@@ -15,23 +15,36 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DashboardCustomize
 import androidx.compose.material.icons.filled.EditNote
-import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Laptop
 import androidx.compose.material.icons.filled.RequestQuote
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,16 +66,26 @@ import com.example.ui.components.TelemetryCard
 @Composable
 fun HomeScreen(
     scans: List<ScanRecord>,
-    selectedFilter: String,
-    onFilterSelect: (String) -> Unit,
-    onScanClick: () -> Unit,
-    onQuickSampleClick: (String) -> Unit,
-    onRecordClick: (ScanRecord) -> Unit,
-    onDeleteClick: (String) -> Unit,
-    isOffline: Boolean,
-    telemetry: TelemetryState,
+    selectedFilter: String = "All",
+    searchQuery: String = "",
+    onSearchQueryChange: (String) -> Unit = {},
+    onFilterSelect: (String) -> Unit = {},
+    onScanClick: () -> Unit = {},
+    onQuickSampleClick: (String) -> Unit = {},
+    onRecordClick: (ScanRecord) -> Unit = {},
+    onDeleteClick: (String) -> Unit = {},
+    onToggleItem: (scanId: String, itemId: String) -> Unit = { _, _ -> },
+    onCopyRecord: (ScanRecord) -> Unit = {},
+    isOffline: Boolean = true,
+    geminiApiKey: String = "",
+    onToggleOffline: (Boolean) -> Unit = {},
+    onSaveApiKey: (String) -> Unit = {},
+    telemetry: TelemetryState = TelemetryState(),
     modifier: Modifier = Modifier
 ) {
+    var showApiKeyDialog by remember { mutableStateOf(false) }
+    var tempApiKey by remember { mutableStateOf(geminiApiKey) }
+
     val quickPresets = listOf(
         Triple("Receipt", "Expense & Tax Totals", Icons.AutoMirrored.Filled.ReceiptLong),
         Triple("Whiteboard", "Milestones & Roadmap", Icons.Default.DashboardCustomize),
@@ -73,22 +96,22 @@ fun HomeScreen(
 
     val filterOptions = listOf("All", "Receipt", "Whiteboard", "Business Card", "Invoice", "Notes")
 
-    val filteredScans = if (selectedFilter == "All") {
-        scans
-    } else {
-        scans.filter { it.type.equals(selectedFilter, ignoreCase = true) }
+    val filteredScans = scans.filter { scan ->
+        if (selectedFilter == "All") true else scan.type.equals(selectedFilter, ignoreCase = true)
     }
 
-    val totalPendingTasks = scans.flatMap { it.items }.count { !it.isChecked }
+    val totalTasks = scans.flatMap { it.items }.size
+    val completedTasks = scans.flatMap { it.items }.count { it.isChecked }
+    val pendingTasks = totalTasks - completedTasks
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
-        // --- 1. Top Header & Live Indicators ---
+        // --- 1. Top Header & Interactive Mode Switcher ---
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -104,17 +127,31 @@ fun HomeScreen(
                     modifier = Modifier.semantics { heading() }
                 )
                 Text(
-                    text = "Camera-first on-device productivity",
+                    text = "Camera & OCR productivity hub",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            // Engine Status Badge
+            // Interactive Mode Toggle Chip
             Surface(
                 shape = MaterialTheme.shapes.small,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                color = if (!isOffline) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                modifier = Modifier
+                    .clip(MaterialTheme.shapes.small)
+                    .clickable {
+                        if (isOffline) {
+                            if (geminiApiKey.isBlank()) {
+                                showApiKeyDialog = true
+                            } else {
+                                onToggleOffline(false)
+                            }
+                        } else {
+                            onToggleOffline(true)
+                        }
+                    }
+                    .testTag("mode_toggle_button")
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -122,22 +159,56 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.ElectricBolt,
+                        imageVector = if (!isOffline) Icons.Default.AutoAwesome else Icons.Default.CameraAlt,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = if (!isOffline) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(14.dp)
                     )
                     Text(
-                        text = if (isOffline) "ML Kit OCR" else "Gemini Flash",
+                        text = if (isOffline) "On-Device" else "Gemini AI",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = if (!isOffline) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
         }
 
-        // --- 2. Live Task & Metric Overview Banner ---
+        // --- 2. Interactive Search Bar ---
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = onSearchQueryChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("home_search_input"),
+            placeholder = { Text("Search scanned text, titles, items...") },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Search",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { onSearchQueryChange("") }) {
+                        Icon(
+                            imageVector = Icons.Default.Clear,
+                            contentDescription = "Clear search",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            },
+            shape = MaterialTheme.shapes.medium,
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            )
+        )
+
+        // --- 3. Live Task & Metric Overview Banner ---
         Surface(
             shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.primaryContainer,
@@ -146,19 +217,21 @@ fun HomeScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp),
+                    .padding(18.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = "Pending Action Items",
+                        text = "Action Items Checklist",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Text(
-                        text = if (totalPendingTasks == 0) "All scanned tasks are up to date" else "$totalPendingTasks items require follow-up",
+                        text = if (pendingTasks == 0 && totalTasks > 0) "All scanned tasks completed! Great work."
+                               else if (totalTasks == 0) "Scan any document or whiteboard to generate tasks."
+                               else "$pendingTasks pending • $completedTasks completed",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                     )
@@ -169,17 +242,17 @@ fun HomeScreen(
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 ) {
                     Text(
-                        text = "$totalPendingTasks",
+                        text = "$pendingTasks",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp)
                     )
                 }
             }
         }
 
-        // --- 3. Quick Test Presets Carousel ---
+        // --- 4. Quick Presets Carousel ---
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
                 text = "Quick Document Presets",
@@ -204,10 +277,23 @@ fun HomeScreen(
             }
         }
 
-        // --- 4. System Telemetry & Performance Card ---
-        TelemetryCard(telemetry = telemetry)
+        // --- 5. Productivity Overview Card ---
+        TelemetryCard(
+            telemetry = telemetry,
+            isOffline = isOffline,
+            hasApiKey = geminiApiKey.isNotBlank(),
+            totalTasks = totalTasks,
+            completedTasks = completedTasks,
+            onToggleEngine = {
+                if (isOffline && geminiApiKey.isBlank()) {
+                    showApiKeyDialog = true
+                } else {
+                    onToggleOffline(!isOffline)
+                }
+            }
+        )
 
-        // --- 5. Filter Chips Row ---
+        // --- 6. Filter Chips Row ---
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -215,7 +301,7 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Recent Scans",
+                    text = "Scanned Documents",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -248,7 +334,7 @@ fun HomeScreen(
                 }
             }
 
-            // --- 6. Documents List / Empty State ---
+            // --- 7. Documents List / Empty State ---
             if (filteredScans.isEmpty()) {
                 EmptyStateView(
                     onScanClick = onScanClick,
@@ -260,12 +346,60 @@ fun HomeScreen(
                         DocumentCard(
                             record = scan,
                             onClick = { onRecordClick(scan) },
-                            onDelete = { onDeleteClick(scan.id) }
+                            onDelete = { onDeleteClick(scan.id) },
+                            onToggleItem = { itemId -> onToggleItem(scan.id, itemId) },
+                            onCopy = { onCopyRecord(scan) }
                         )
                     }
                 }
             }
         }
+    }
+
+    if (showApiKeyDialog) {
+        AlertDialog(
+            onDismissRequest = { showApiKeyDialog = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Key,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            title = { Text("Google Gemini API Key") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "To enable cloud AI analysis with Gemini 2.5 Flash, enter your Google AI Studio API key.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    OutlinedTextField(
+                        value = tempApiKey,
+                        onValueChange = { tempApiKey = it },
+                        label = { Text("API Key") },
+                        placeholder = { Text("AIzaSy...") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onSaveApiKey(tempApiKey)
+                        onToggleOffline(false)
+                        showApiKeyDialog = false
+                    }
+                ) {
+                    Text("Save & Enable Cloud")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showApiKeyDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
@@ -325,3 +459,4 @@ private fun PresetCard(
         }
     }
 }
+

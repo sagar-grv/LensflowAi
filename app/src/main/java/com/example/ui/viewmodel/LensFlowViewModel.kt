@@ -60,9 +60,12 @@ data class LensFlowUiState(
     val screenState: ScreenState = ScreenState.MAIN_TABS,
     val selectedCategoryFilter: String = "All",
     val selectedScanMode: String = "Receipt",
+    val searchQuery: String = "",
     val isOfflineMode: Boolean = true,
     val isRedLightMode: Boolean = false,
     val isProcessing: Boolean = false,
+    val isTestingKey: Boolean = false,
+    val geminiApiKey: String = "",
     val officeKit: OfficeKitState = OfficeKitState(),
     val telemetry: TelemetryState = TelemetryState()
 )
@@ -71,6 +74,7 @@ class LensFlowViewModel(application: Application) : AndroidViewModel(application
 
     private val repository: ScanRepository
     private val ocrEngine: MlKitOcrEngine = MlKitOcrEngine(application.applicationContext)
+    private val sharedPrefs = application.getSharedPreferences("lensflow_prefs", Context.MODE_PRIVATE)
 
     init {
         val db = LensFlowDatabase.getDatabase(application)
@@ -82,9 +86,12 @@ class LensFlowViewModel(application: Application) : AndroidViewModel(application
     private val _currentScan = MutableStateFlow<ScanRecord?>(null)
     private val _selectedFilter = MutableStateFlow("All")
     private val _selectedScanMode = MutableStateFlow("Receipt")
+    private val _searchQuery = MutableStateFlow("")
     private val _isOfflineMode = MutableStateFlow(true)
     private val _isRedLightMode = MutableStateFlow(false)
     private val _isProcessing = MutableStateFlow(false)
+    private val _isTestingKey = MutableStateFlow(false)
+    private val _geminiApiKey = MutableStateFlow(sharedPrefs.getString("custom_gemini_key", "") ?: "")
     private val _officeKitState = MutableStateFlow(OfficeKitState())
     private val _telemetryState = MutableStateFlow(TelemetryState())
 
@@ -98,9 +105,12 @@ class LensFlowViewModel(application: Application) : AndroidViewModel(application
         _currentScan,
         _selectedFilter,
         _selectedScanMode,
+        _searchQuery,
         _isOfflineMode,
         _isRedLightMode,
         _isProcessing,
+        _isTestingKey,
+        _geminiApiKey,
         _officeKitState,
         _telemetryState
     ) { args: Array<Any?> ->
@@ -111,22 +121,39 @@ class LensFlowViewModel(application: Application) : AndroidViewModel(application
         val currentScan = args[3] as? ScanRecord
         val filter = args[4] as String
         val mode = args[5] as String
-        val isOffline = args[6] as Boolean
-        val isRedLight = args[7] as Boolean
-        val isProcessing = args[8] as Boolean
-        val officeKit = args[9] as OfficeKitState
-        val telemetry = args[10] as TelemetryState
+        val query = args[6] as String
+        val isOffline = args[7] as Boolean
+        val isRedLight = args[8] as Boolean
+        val isProcessing = args[9] as Boolean
+        val isTestingKey = args[10] as Boolean
+        val apiKey = args[11] as String
+        val officeKit = args[12] as OfficeKitState
+        val telemetry = args[13] as TelemetryState
+
+        val filteredByQuery = if (query.isBlank()) {
+            scans
+        } else {
+            scans.filter {
+                it.title.contains(query, ignoreCase = true) ||
+                it.type.contains(query, ignoreCase = true) ||
+                it.rawExtractedText.contains(query, ignoreCase = true) ||
+                it.items.any { item -> item.title.contains(query, ignoreCase = true) || item.details.contains(query, ignoreCase = true) }
+            }
+        }
 
         LensFlowUiState(
-            scans = scans,
-            currentScan = currentScan ?: scans.firstOrNull(),
+            scans = filteredByQuery,
+            currentScan = currentScan ?: filteredByQuery.firstOrNull(),
             activeTab = tab,
             screenState = screen,
             selectedCategoryFilter = filter,
             selectedScanMode = mode,
+            searchQuery = query,
             isOfflineMode = isOffline,
             isRedLightMode = isRedLight,
             isProcessing = isProcessing,
+            isTestingKey = isTestingKey,
+            geminiApiKey = apiKey,
             officeKit = officeKit,
             telemetry = telemetry
         )
@@ -152,12 +179,91 @@ class LensFlowViewModel(application: Application) : AndroidViewModel(application
         _selectedScanMode.value = mode
     }
 
+    fun setSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
     fun toggleOfflineMode(enabled: Boolean) {
         _isOfflineMode.value = enabled
+        if (!enabled && _geminiApiKey.value.isBlank()) {
+            viewModelScope.launch {
+                _eventFlow.emit(LensFlowUiEvent.ShowToast("Online mode active. Add your Google Gemini API key in PC Link & Settings."))
+            }
+        }
     }
 
     fun toggleRedLightMode(enabled: Boolean) {
         _isRedLightMode.value = enabled
+    }
+
+    fun saveGeminiApiKey(key: String) {
+        val trimmed = key.trim()
+        sharedPrefs.edit().putString("custom_gemini_key", trimmed).apply()
+        _geminiApiKey.value = trimmed
+        viewModelScope.launch {
+            _eventFlow.emit(LensFlowUiEvent.TriggerHapticFeedback)
+            _eventFlow.emit(LensFlowUiEvent.ShowToast("Google Gemini API Key saved successfully!"))
+        }
+    }
+
+    fun clearGeminiApiKey() {
+        sharedPrefs.edit().remove("custom_gemini_key").apply()
+        _geminiApiKey.value = ""
+        viewModelScope.launch {
+            _eventFlow.emit(LensFlowUiEvent.TriggerHapticFeedback)
+            _eventFlow.emit(LensFlowUiEvent.ShowToast("Gemini API key cleared."))
+        }
+    }
+
+    fun testGeminiConnection(key: String) {
+        val keyToTest = key.ifBlank { _geminiApiKey.value }.trim()
+        if (keyToTest.isBlank()) {
+            viewModelScope.launch {
+                _eventFlow.emit(LensFlowUiEvent.ShowToast("Please enter an API key to test"))
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            _isTestingKey.value = true
+            val success = withContext(Dispatchers.IO) {
+                try {
+                    val client = OkHttpClient.Builder()
+                        .connectTimeout(8, TimeUnit.SECONDS)
+                        .readTimeout(8, TimeUnit.SECONDS)
+                        .build()
+
+                    val testPrompt = "Respond with: OK"
+                    val requestJson = JSONObject().apply {
+                        put("contents", JSONArray().apply {
+                            put(JSONObject().apply {
+                                put("parts", JSONArray().apply {
+                                    put(JSONObject().apply { put("text", testPrompt) })
+                                })
+                            })
+                        })
+                    }
+
+                    val request = Request.Builder()
+                        .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$keyToTest")
+                        .post(requestJson.toString().toRequestBody("application/json".toMediaType()))
+                        .build()
+
+                    client.newCall(request).execute().use { response ->
+                        response.isSuccessful
+                    }
+                } catch (e: Exception) {
+                    false
+                }
+            }
+            _isTestingKey.value = false
+            _eventFlow.emit(LensFlowUiEvent.TriggerHapticFeedback)
+            if (success) {
+                _eventFlow.emit(LensFlowUiEvent.ShowToast("Connected to Google Gemini 2.5 Flash successfully!"))
+            } else {
+                _eventFlow.emit(LensFlowUiEvent.ShowToast("API key test failed. Please verify your key in Google AI Studio."))
+            }
+        }
     }
 
     fun selectScanRecord(record: ScanRecord) {
@@ -169,6 +275,60 @@ class LensFlowViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             repository.toggleActionItem(scanId, itemId)
             _eventFlow.emit(LensFlowUiEvent.TriggerHapticFeedback)
+        }
+    }
+
+    fun addActionItem(scanId: String, title: String, due: String = "Today", category: String = "Task") {
+        if (title.isBlank()) return
+        viewModelScope.launch {
+            val scan = repository.getScanById(scanId)
+            if (scan != null) {
+                val newItem = ActionItem(
+                    title = title.trim(),
+                    dateOrTime = due.ifBlank { "Today" }.trim(),
+                    details = "Manually added task",
+                    category = category.ifBlank { "Task" }.trim()
+                )
+                val updatedItems = scan.items + newItem
+                val updatedScan = scan.copy(items = updatedItems)
+                repository.insertScan(updatedScan)
+                _currentScan.value = updatedScan
+                _eventFlow.emit(LensFlowUiEvent.TriggerHapticFeedback)
+                _eventFlow.emit(LensFlowUiEvent.ShowToast("Action item added!"))
+            }
+        }
+    }
+
+    fun markAllTasksCompleted(completed: Boolean = true) {
+        viewModelScope.launch {
+            val allScans = uiState.value.scans
+            allScans.forEach { scan ->
+                val updatedItems = scan.items.map { it.copy(isChecked = completed) }
+                repository.insertScan(scan.copy(items = updatedItems))
+            }
+            _eventFlow.emit(LensFlowUiEvent.TriggerHapticFeedback)
+            _eventFlow.emit(LensFlowUiEvent.ShowToast(if (completed) "All tasks marked completed" else "All tasks reset"))
+        }
+    }
+
+    fun copyAllTasksToClipboard() {
+        val context = getApplication<Application>().applicationContext
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val allScans = uiState.value.scans
+        val summary = buildString {
+            appendLine("📋 LensFlow AI — All Action Items")
+            allScans.forEach { scan ->
+                appendLine("\n[${scan.type}] ${scan.title}:")
+                scan.items.forEach { item ->
+                    val check = if (item.isChecked) "[✓]" else "[ ]"
+                    appendLine("  $check ${item.title} (${item.dateOrTime})")
+                }
+            }
+        }
+        clipboard.setPrimaryClip(ClipData.newPlainText("LensFlow Master Checklist", summary))
+        viewModelScope.launch {
+            _eventFlow.emit(LensFlowUiEvent.TriggerHapticFeedback)
+            _eventFlow.emit(LensFlowUiEvent.ShowToast("Master checklist copied to clipboard! Ready to paste."))
         }
     }
 

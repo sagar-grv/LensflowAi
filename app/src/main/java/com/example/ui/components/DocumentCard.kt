@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,12 +13,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DashboardCustomize
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Pending
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.RequestQuote
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +39,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.domain.model.ScanRecord
@@ -42,6 +49,8 @@ fun DocumentCard(
     record: ScanRecord,
     onClick: () -> Unit,
     onDelete: () -> Unit,
+    onToggleItem: ((itemId: String) -> Unit)? = null,
+    onCopy: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val typeIcon: ImageVector = when (record.type) {
@@ -113,6 +122,20 @@ fun DocumentCard(
                     )
                 }
 
+                if (onCopy != null) {
+                    IconButton(
+                        onClick = onCopy,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = "Copy Checklist",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+
                 IconButton(
                     onClick = onDelete,
                     modifier = Modifier
@@ -128,7 +151,7 @@ fun DocumentCard(
                 }
             }
 
-            // Action Items Highlights Preview
+            // Interactive Action Items Preview with Direct Toggle
             if (record.items.isNotEmpty()) {
                 Surface(
                     shape = MaterialTheme.shapes.small,
@@ -137,34 +160,55 @@ fun DocumentCard(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
-                        record.items.take(2).forEach { item ->
+                        record.items.take(3).forEach { item ->
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(MaterialTheme.shapes.extraSmall)
+                                    .then(
+                                        if (onToggleItem != null) {
+                                            Modifier.clickable { onToggleItem(item.id) }
+                                        } else {
+                                            Modifier
+                                        }
+                                    )
+                                    .padding(vertical = 4.dp, horizontal = 4.dp)
                             ) {
                                 Icon(
-                                    imageVector = if (item.isChecked) Icons.Default.CheckCircle else Icons.Default.Pending,
-                                    contentDescription = null,
-                                    tint = if (item.isChecked) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(14.dp)
+                                    imageVector = if (item.isChecked) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                                    contentDescription = if (item.isChecked) "Completed" else "Pending",
+                                    tint = if (item.isChecked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                                    modifier = Modifier.size(16.dp)
                                 )
                                 Text(
                                     text = item.title,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = if (item.isChecked) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface,
+                                    textDecoration = if (item.isChecked) TextDecoration.LineThrough else TextDecoration.None,
                                     maxLines = 1,
-                                    fontSize = 12.sp
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.weight(1f)
                                 )
+                                if (item.dateOrTime.isNotBlank()) {
+                                    Text(
+                                        text = item.dateOrTime,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                        fontSize = 10.sp
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
 
-            // Footer: Progress Pill & Engine Badge
+            // Footer: Progress Pill & View Details Indicator
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -183,7 +227,7 @@ fun DocumentCard(
                         }
                     ) {
                         Text(
-                            text = "$completedCount/$totalCount completed",
+                            text = if (totalCount == 0) "No tasks" else "$completedCount of $totalCount done",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.SemiBold,
                             color = if (completedCount == totalCount && totalCount > 0) {
@@ -195,19 +239,36 @@ fun DocumentCard(
                         )
                     }
 
-                    Text(
-                        text = "⚡ ${record.latencyMs}ms",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Surface(
+                        shape = MaterialTheme.shapes.extraSmall,
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.6f)
+                    ) {
+                        Text(
+                            text = if (record.isOfflineProcessed) "On-Device" else "Gemini Cloud",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
                 }
 
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.size(14.dp)
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "View",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
             }
         }
     }
