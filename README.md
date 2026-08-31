@@ -1,44 +1,44 @@
 # 🌟 LensFlow AI — Camera-First On-Device Document Productivity & Cross-Device Bridge
 
-> **Platform:** Android (Jetpack Compose & Kotlin) | **Vision Engine:** Google ML Kit Text Recognition | **Architecture:** Local Edge OCR + Cross-Device Bridge  
+> **Platform:** Android (Jetpack Compose & Kotlin) | **Vision Engine:** Google ML Kit Text Recognition | **Database:** Room Local SQLite | **Architecture:** Clean MVVM + Repository Pattern
 
 ---
 
 ## 📌 Overview
 
-**LensFlow AI** is a camera-first Android productivity tool that transforms physical documents, receipts, whiteboard brainstorms, business cards, and invoices into structured, actionable tasks and summaries directly on your device.
+**LensFlow AI** is a camera-first Android productivity application designed to convert physical documents, receipts, whiteboard notes, business cards, and invoices into structured, actionable digital workflows and checklists directly on your device.
 
-By utilizing **Google ML Kit's on-device OCR engine** paired with local heuristic and pattern-based entity extraction, LensFlow extracts dates, amounts, action items, and contacts locally in milliseconds without requiring mandatory internet connectivity. Extracted action items can be checked off, exported to clean PDF reports, or pushed directly to a paired PC's clipboard for seamless workflow continuation.
+By leveraging **Google ML Kit's on-device OCR engine** (`com.google.mlkit:text-recognition`) paired with real-time heuristic entity extraction, LensFlow dynamically identifies amounts, line items, dates, bulleted action items, emails, and phone numbers in sub-50ms inference time without relying on cloud services. Scanned documents and action items persist locally via **Android Jetpack Room**, with one-tap cross-device clipboard sync and PDF export.
 
 ---
 
 ## ✨ Key Features
 
-### ⚡ 1. Fast On-Device OCR & Entity Extraction
-- **Local Text Recognition:** Powered by Google ML Kit (`com.google.mlkit:text-recognition`), running on-device for fast, zero-cloud text extraction.
-- **Pattern-Based Entity Parsing:** Automatically recognizes currency totals, due dates, bulleted action items, email addresses, and phone numbers.
-- **Privacy by Default:** Offline document processing ensures sensitive financial documents, business cards, and personal notes remain on-device.
-- **Optional Cloud AI Mode:** Supports optional multimodal enrichment using the Google Gemini API when configured with an API key.
+### ⚡ 1. Real On-Device OCR & Dynamic Entity Extraction
+- **Zero-Cloud Vision Pipeline:** Powered by Google ML Kit on-device Text Recognition, extracting text from camera frames and gallery images entirely on the client processor.
+- **Dynamic Entity Parsing:** Real-time extraction of financial totals (`$`, `€`, `£`, `¥`), dates, bulleted checklist items (`•`, `-`, `1.`), business card contact information (emails and phone numbers), and invoice balance records.
+- **Privacy by Default:** Sensitive expense receipts, internal whiteboards, and client documents remain local on your device.
+- **Optional Cloud AI Mode:** Supports optional multimodal enrichment using Google Gemini Flash when an API key is provided.
 
-### 🎯 2. Structured Document Processing Modes
-- **Receipts:** Identifies totals, tax lines, and generates expense reimbursement reminders.
-- **Whiteboards & Brainstorms:** Converts bulleted lists and action items into actionable tasks.
-- **Business Cards:** Parses names, email addresses, and phone numbers into one-tap follow-up items.
-- **Invoices:** Highlights vendor info and invoice balances for approval workflows.
-- **Notes & Agendas:** Structures meeting notes and handwritten lists into organized checklists.
+### 🗄️ 2. Room Database Local Persistence
+- **Offline-First Storage:** Scanned documents, OCR text, timestamps, latency metrics, and interactive checklist states persist locally in SQLite via Room.
+- **Reactive State Flow:** Room DAOs stream updates directly to Jetpack Compose UI via Kotlin `Flow` and `StateFlow`.
 
-### 💻 3. Cross-Device PC Bridge & Productivity Tools
-- **Universal Clipboard Sync:** Copies formatted action items and summaries directly to the system clipboard for immediate desktop paste (`Ctrl+V` on laptop).
-- **Standardized PDF Generation:** Creates formatted PDF summary reports using Android's native `PdfDocument` framework for easy sharing via system sheets.
-- **Calendar & Email Export:** One-tap integration to create calendar reminders and draft emails from extracted action items.
+### 📷 3. CameraX Viewfinder & Photo Import
+- **Live Framing HUD:** Real-time alignment corners, animated laser scan overlay, and quick document aspect guide.
+- **Hardware Controls:** Flashlight / torch toggle and front/back camera lens switching.
+- **System Photo Picker:** Seamless import of existing photos and high-resolution document images from the device gallery.
 
-### ♿ 4. Comprehensive Accessibility & Contrast Compliance
-- **Screen Reader Ready (TalkBack):** Full semantic annotations (`heading`, `contentDescription`, `role`, `stateDescription`) across all interactive components.
-- **WCAG AA Contrast Compliant:** Thoughtfully tuned Material 3 dark color scheme ensuring high-contrast readability (>4.5:1 for body text, >3:1 for graphical elements).
+### 💻 4. Cross-Device PC Bridge & Productivity Tools
+- **Universal Clipboard Sync:** Copies formatted document checklists directly to the system clipboard for immediate desktop paste (`Ctrl+V` on laptop/PC).
+- **Native PDF Report Generation:** Creates formatted PDF summary reports using Android's native `PdfDocument` framework for sharing via Android system sheets.
+- **Intent Integrations:** One-tap export to native Google Calendar events and Email draft clients.
+
+### ♿ 5. Accessibility, Contrast & Night Vision
+- **Screen Reader Ready (TalkBack):** Full semantic annotations (`heading`, `contentDescription`, `role`, `testTag`) across all interactive components.
+- **WCAG AA Contrast Compliant:** High-contrast Material Design 3 dark palette (>4.5:1 text contrast).
 - **Accessible Touch Targets:** Minimum 48dp interactive touch targets across all buttons, chips, checkboxes, and navigation tabs.
-
-### 🔴 5. Darkroom / Night Red-Light Mode
-- Monochrome red-wavelength UI mode to reduce blue-light emission and preserve dark adaptation during low-light scanning sessions.
+- **Darkroom Red-Light Mode:** Specialized red-wavelength UI mode to preserve scotopic vision in dark environments.
 
 ---
 
@@ -48,30 +48,27 @@ By utilizing **Google ML Kit's on-device OCR engine** paired with local heuristi
 LensFlow App Architecture
 │
 ├── 📱 UI Layer (Jetpack Compose + Material 3)
-│   ├── MD3 HomeScreen (Dashboard, Quick Presets, Filter Chips, Recent Scans)
-│   ├── CameraX Viewfinder (Real-Time HUD, Corner Framing, Torch & Permissions)
-│   ├── Action Items & Document Details (Interactive Checklists, PDF Generator)
-│   ├── PC Link & Settings Hub (Clipboard Sync, Model & Offline Preferences)
-│   └── System Performance & Scan Metrics
+│   ├── HomeScreen (Dashboard, Telemetry, Filter Chips, Recent Scans)
+│   ├── CameraScreen (CameraX Viewfinder, Torch, Lenses, Photo Picker)
+│   ├── ResultDetailsScreen (Interactive Checklists, Raw OCR Text, PDF & Clipboard Export)
+│   ├── TasksScreen (Aggregated Action Item Checklist & Progress Metrics)
+│   └── PcSettingsScreen (Clipboard Sync, Mirroring, Red-Light Mode, Engine Preferences)
 │
-├── 🧠 Text & Action Extraction Pipeline
-│   ├── Google ML Kit Text Recognition (On-Device Vision Pipeline)
-│   ├── Regex & Rule-Based Heuristic Entity Parsers
-│   └── Optional Cloud Gemini API Integration
+├── 🧠 Domain & Vision Pipeline
+│   ├── MlKitOcrEngine (Google ML Kit On-Device Text Recognition)
+│   ├── SmartEntityParser (Dynamic Regex & Heuristic Action Item Extraction)
+│   └── PdfExportService (Native Android PdfDocument Report Generator)
 │
-└── 🔗 System & Hardware Integrations
-    ├── CameraX Lifecycle & ImageCapture
-    ├── AndroidX Print & PdfDocument Framework
-    └── System Clipboard & Android Intent Services
+├── 🗄️ Data Layer (Room Persistence)
+│   ├── LensFlowDatabase (Room Database with Type Converters)
+│   ├── ScanDao (Reactive Flow queries, Insert, Update, Delete)
+│   └── ScanRepository (Unidirectional Data Flow Repository)
+│
+└── 🧪 Testing Suite (Robolectric & Roborazzi)
+    ├── ScanRepositoryTest (Room In-Memory Database CRUD & Action Toggle Tests)
+    ├── ExampleRobolectricTest (SmartEntityParser Dynamic Extraction Validation)
+    └── GreetingScreenshotTest (Roborazzi Visual Regression Verification)
 ```
-
-### 🧩 Technologies Used:
-- **Language:** 100% Kotlin
-- **UI Toolkit:** Jetpack Compose with Material Design 3 (M3)
-- **Computer Vision:** Google ML Kit Text Recognition (`com.google.mlkit:text-recognition:16.0.1`)
-- **Camera Pipeline:** AndroidX CameraX (`camera-camera2`, `camera-lifecycle`, `camera-view`)
-- **Accessibility:** Jetpack Compose Semantics, TalkBack optimization, 48dp touch targets
-- **Testing:** Robolectric local JVM testing & automated unit test suite
 
 ---
 
@@ -82,28 +79,28 @@ LensFlow App Architecture
 - JDK 17+
 - Android SDK 35 (compileSdk 35, minSdk 26)
 
-### Build Steps
+### Build & Run
 ```bash
-# 1. Clone repository
-git clone https://github.com/your-username/lensflow-ai.git
-cd lensflow-ai
+# 1. Build debug APK
+gradle assembleDebug
 
-# 2. Build debug APK
-./gradlew assembleDebug
+# 2. Run automated test suite (Unit, Room DAO, Robolectric & Roborazzi)
+gradle :app:testDebugUnitTest
 
-# 3. Run automated unit & Robolectric tests
-./gradlew testDebugUnitTest
+# 3. Verify screenshot tests
+gradle :app:verifyRoborazziDebug
 ```
 
 ---
 
-## 🧪 Testing & Validation
+## 🧪 Automated Testing
 
-The codebase includes an automated test suite verifying critical user journeys:
-- `ExampleRobolectricTest.kt`: Validates string resources and on-device parsing algorithms across Receipts, Whiteboards, and Business Cards.
-- Run tests: `./gradlew testDebugUnitTest`
+The project includes unit, repository, and screenshot tests:
+- **`ScanRepositoryTest.kt`**: Tests in-memory Room database insertion, retrieval, item checkbox toggles, and deletion.
+- **`ExampleRobolectricTest.kt`**: Verifies dynamic parsing of receipts, whiteboards, business cards, and string resources.
+- **`GreetingScreenshotTest.kt`**: Verifies UI layout rendering using native Roborazzi capture on Robolectric.
 
 ---
 
 ## 📄 License
-Distributed under the Apache 2.0 License. See `LICENSE` for more information.
+Distributed under the Apache 2.0 License.

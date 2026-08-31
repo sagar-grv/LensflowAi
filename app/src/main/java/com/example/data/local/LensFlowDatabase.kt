@@ -25,7 +25,7 @@ abstract class LensFlowDatabase : RoomDatabase() {
                     LensFlowDatabase::class.java,
                     "lensflow_database"
                 )
-                    .fallbackToDestructiveMigration()
+                    .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
                 INSTANCE = instance
                 instance
