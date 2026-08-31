@@ -1,45 +1,44 @@
-# 🌟 LensFlow AI — Camera-First On-Device Productivity & Cross-Device Bridge
+# 🌟 LensFlow AI — Camera-First On-Device Document Productivity & Cross-Device Bridge
 
-> **Competition Track:** On-Device AI, Smart Camera Productivity & OriginOS Cross-Device Innovation  
-> **Platform:** Android (Jetpack Compose & Kotlin) | **Architecture:** Local Edge NPU + CameraX + Vivo Office Kit  
-
----
-
-## 📌 Executive Summary
-
-**LensFlow AI** is a next-generation, camera-first productivity suite that transforms real-world physical documents, receipts, whiteboard brainstorms, and business cards into structured, actionable digital workflows in **sub-50ms**. 
-
-By processing all vision and text extraction locally on the device's NPU using **Google ML Kit** and **Gemini Nano / on-device SLMs**, LensFlow delivers zero-latency productivity with 100% offline data privacy. Coupled with **Vivo Office Kit** integration, users can instantly push extracted actions, financial items, and PDF reports directly to their PC clipboard in real-time.
+> **Platform:** Android (Jetpack Compose & Kotlin) | **Vision Engine:** Google ML Kit Text Recognition | **Architecture:** Local Edge OCR + Cross-Device Bridge  
 
 ---
 
-## ✨ Key Features & Innovation Highlights
+## 📌 Overview
 
-### ⚡ 1. Sub-50ms On-Device NPU Inference
-- **Zero Cloud Latency:** Optical character recognition (OCR) and NLP action extraction execute entirely on-device.
-- **Selectable Edge AI Engines:**
-  - `Gemini Nano (3.2B)` — Optimized for Android AICore / NPU.
-  - `Phi-3 Mini (3.8B)` — Fast reasoning & milestone classification.
-  - `Gemma 2B INT4` — Ultra-low memory footprint.
-  - `Mistral 7B INT4` — Comprehensive multi-clause entity extraction.
-- **100% Offline Privacy:** Sensitive business invoices, medical receipts, and whiteboard secrets never leave the user's phone.
+**LensFlow AI** is a camera-first Android productivity tool that transforms physical documents, receipts, whiteboard brainstorms, business cards, and invoices into structured, actionable tasks and summaries directly on your device.
 
-### 🎯 2. Intelligent Action & Entity Extraction
-- **Receipts & Invoices:** Automatically parses currency amounts, vendor names, line items, and generates payment/expense reimbursement tasks.
-- **Whiteboards & Brainstorms:** Identifies bulleted goals, milestones, and assigns target deadlines.
-- **Business Cards:** Parses contacts, phone numbers, and company affiliations into one-tap follow-up meetings.
-- **Notes & Agendas:** Converts handwriting and typed notes into prioritized checklist items.
+By utilizing **Google ML Kit's on-device OCR engine** paired with local heuristic and pattern-based entity extraction, LensFlow extracts dates, amounts, action items, and contacts locally in milliseconds without requiring mandatory internet connectivity. Extracted action items can be checked off, exported to clean PDF reports, or pushed directly to a paired PC's clipboard for seamless workflow continuation.
 
-### 💻 3. Vivo Office Kit & Cross-Device PC Bridge
-- **Universal Clipboard Sync:** Extracted tasks and summaries sync seamlessly to the paired PC clipboard (`Ctrl+V` ready on laptop).
-- **Remote PC Scanner Trigger:** Trigger high-resolution camera capture directly from the desktop workstation.
-- **Instant PDF Export:** Generates standardized A4 PDF reports with cryptographic on-device timestamps for expense submission.
+---
 
-### 🔴 4. Night & Darkroom Red-Light Mode
-- Specialized monochrome red-wavelength display mode (650nm) designed for darkroom labs, late-night study sessions, and astronomy workspaces to preserve natural night vision and reduce eye strain.
+## ✨ Key Features
 
-### 📊 5. Real-Time Telemetry & Hardware Benchmarking
-- Live on-device telemetry dashboard tracking average OCR latency (ms), NPU TOPS utilization, clipboard sync events, and battery impact.
+### ⚡ 1. Fast On-Device OCR & Entity Extraction
+- **Local Text Recognition:** Powered by Google ML Kit (`com.google.mlkit:text-recognition`), running on-device for fast, zero-cloud text extraction.
+- **Pattern-Based Entity Parsing:** Automatically recognizes currency totals, due dates, bulleted action items, email addresses, and phone numbers.
+- **Privacy by Default:** Offline document processing ensures sensitive financial documents, business cards, and personal notes remain on-device.
+- **Optional Cloud AI Mode:** Supports optional multimodal enrichment using the Google Gemini API when configured with an API key.
+
+### 🎯 2. Structured Document Processing Modes
+- **Receipts:** Identifies totals, tax lines, and generates expense reimbursement reminders.
+- **Whiteboards & Brainstorms:** Converts bulleted lists and action items into actionable tasks.
+- **Business Cards:** Parses names, email addresses, and phone numbers into one-tap follow-up items.
+- **Invoices:** Highlights vendor info and invoice balances for approval workflows.
+- **Notes & Agendas:** Structures meeting notes and handwritten lists into organized checklists.
+
+### 💻 3. Cross-Device PC Bridge & Productivity Tools
+- **Universal Clipboard Sync:** Copies formatted action items and summaries directly to the system clipboard for immediate desktop paste (`Ctrl+V` on laptop).
+- **Standardized PDF Generation:** Creates formatted PDF summary reports using Android's native `PdfDocument` framework for easy sharing via system sheets.
+- **Calendar & Email Export:** One-tap integration to create calendar reminders and draft emails from extracted action items.
+
+### ♿ 4. Comprehensive Accessibility & Contrast Compliance
+- **Screen Reader Ready (TalkBack):** Full semantic annotations (`heading`, `contentDescription`, `role`, `stateDescription`) across all interactive components.
+- **WCAG AA Contrast Compliant:** Thoughtfully tuned Material 3 dark color scheme ensuring high-contrast readability (>4.5:1 for body text, >3:1 for graphical elements).
+- **Accessible Touch Targets:** Minimum 48dp interactive touch targets across all buttons, chips, checkboxes, and navigation tabs.
+
+### 🔴 5. Darkroom / Night Red-Light Mode
+- Monochrome red-wavelength UI mode to reduce blue-light emission and preserve dark adaptation during low-light scanning sessions.
 
 ---
 
@@ -49,47 +48,47 @@ By processing all vision and text extraction locally on the device's NPU using *
 LensFlow App Architecture
 │
 ├── 📱 UI Layer (Jetpack Compose + Material 3)
-│   ├── MD3 HomeScreen (Metric Cards, Category Filters, Quick Presets)
-│   ├── CameraX Viewfinder (Real-Time HUD, Corner Framing, Torch Control)
+│   ├── MD3 HomeScreen (Dashboard, Quick Presets, Filter Chips, Recent Scans)
+│   ├── CameraX Viewfinder (Real-Time HUD, Corner Framing, Torch & Permissions)
 │   ├── Action Items & Document Details (Interactive Checklists, PDF Generator)
-│   ├── Office Kit Hub (PC Bridge Simulator & Clipboard Broadcast)
-│   └── Telemetry & NPU Performance Monitor
+│   ├── PC Link & Settings Hub (Clipboard Sync, Model & Offline Preferences)
+│   └── System Performance & Scan Metrics
 │
-├── 🧠 Intelligence & Parsing Layer
-│   ├── ML Kit Vision Text Recognition (Real-Time Frame Analyzer)
-│   ├── On-Device Action Extraction Pipeline (Regex + Local SLM Prompts)
-│   └── Offline/Cloud Dynamic Dispatcher
+├── 🧠 Text & Action Extraction Pipeline
+│   ├── Google ML Kit Text Recognition (On-Device Vision Pipeline)
+│   ├── Regex & Rule-Based Heuristic Entity Parsers
+│   └── Optional Cloud Gemini API Integration
 │
 └── 🔗 System & Hardware Integrations
     ├── CameraX Lifecycle & ImageCapture
     ├── AndroidX Print & PdfDocument Framework
-    └── System Clipboard & Intent Chooser Services
+    └── System Clipboard & Android Intent Services
 ```
 
 ### 🧩 Technologies Used:
 - **Language:** 100% Kotlin
 - **UI Toolkit:** Jetpack Compose with Material Design 3 (M3)
-- **Computer Vision:** Google ML Kit Text Recognition (`com.google.mlkit:text-recognition`)
+- **Computer Vision:** Google ML Kit Text Recognition (`com.google.mlkit:text-recognition:16.0.1`)
 - **Camera Pipeline:** AndroidX CameraX (`camera-camera2`, `camera-lifecycle`, `camera-view`)
-- **Design System:** Custom Adaptive Vector Icons & Dynamic Color Scheme
-- **Testing:** Robolectric & Local JVM Unit Testing suite
+- **Accessibility:** Jetpack Compose Semantics, TalkBack optimization, 48dp touch targets
+- **Testing:** Robolectric local JVM testing & automated unit test suite
 
 ---
 
 ## 🚀 Getting Started & Build Instructions
 
 ### Prerequisites
-- Android Studio Ladybug | 2024.2.1 or newer
+- Android Studio Ladybug (2024.2.1) or newer
 - JDK 17+
 - Android SDK 35 (compileSdk 35, minSdk 26)
 
 ### Build Steps
 ```bash
-# 1. Clone the repository
+# 1. Clone repository
 git clone https://github.com/your-username/lensflow-ai.git
 cd lensflow-ai
 
-# 2. Compile and assemble debug APK
+# 2. Build debug APK
 ./gradlew assembleDebug
 
 # 3. Run automated unit & Robolectric tests
@@ -100,15 +99,9 @@ cd lensflow-ai
 
 ## 🧪 Testing & Validation
 
-The codebase includes an automated test suite verifying critical CUJs (Critical User Journeys):
+The codebase includes an automated test suite verifying critical user journeys:
 - `ExampleRobolectricTest.kt`: Validates string resources and on-device parsing algorithms across Receipts, Whiteboards, and Business Cards.
-- All unit tests pass with zero warnings (`BUILD SUCCESSFUL`).
-
----
-
-## 🏆 Competition Impact & Real-World Applicability
-
-LensFlow AI bridges the gap between physical paper/meeting notes and desktop workflows. By replacing manual transcription with sub-50ms on-device intelligence and instantaneous PC synchronization, LensFlow saves professionals **15–30 minutes per meeting**, making modern smartphones the ultimate enterprise productivity scanner.
+- Run tests: `./gradlew testDebugUnitTest`
 
 ---
 

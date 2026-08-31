@@ -39,6 +39,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -59,8 +61,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -71,6 +73,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
@@ -124,7 +127,7 @@ data class ScanRecord(
     val type: String, // Receipt, Whiteboard, Business Card, Invoice, Notes
     val timestamp: String,
     val isOfflineProcessed: Boolean,
-    val engineName: String = "Google ML Kit + Gemini Nano NPU",
+    val engineName: String = "Google ML Kit (On-Device OCR)",
     val latencyMs: Long = 42L,
     val rawExtractedText: String = "",
     val items: MutableList<ActionItem>
@@ -139,7 +142,7 @@ data class ExtractionResult(
 
 data class OfficeKitState(
     val isConnected: Boolean = true,
-    val deviceName: String = "iQOO Book Pro 16",
+    val deviceName: String = "Paired PC / Laptop",
     val deviceIp: String = "192.168.1.104",
     val latencyMs: Int = 12,
     val isScreenMirroring: Boolean = false,
@@ -147,19 +150,19 @@ data class OfficeKitState(
 )
 
 data class TelemetryData(
-    var totalScans: Int = 6,
-    var onDeviceInferences: Int = 6,
-    var totalInferenceMs: Long = 260L,
-    var clipboardSyncs: Int = 8,
-    var pcInteractions: Int = 12,
-    var pdfExports: Int = 3
+    var totalScans: Int = 0,
+    var onDeviceInferences: Int = 0,
+    var totalInferenceMs: Long = 0L,
+    var clipboardSyncs: Int = 0,
+    var pcInteractions: Int = 0,
+    var pdfExports: Int = 0
 )
 
 // ==========================================
 // GOOGLE MATERIAL DESIGN 3 (MD3) THEME SYSTEM
+// High-Contrast WCAG AA Compliant Dark Scheme
 // ==========================================
 
-// Official M3 Tonal Palette with iQOO Energetic Amber/Orange Primary & Fresh Mint Secondary
 val md_theme_dark_primary = Color(0xFFFFB77C)
 val md_theme_dark_onPrimary = Color(0xFF4D2700)
 val md_theme_dark_primaryContainer = Color(0xFF6E3900)
@@ -192,33 +195,67 @@ val md_theme_dark_surfaceContainerHighest = Color(0xFF36343B)
 val md_theme_dark_outline = Color(0xFF948F99)
 val md_theme_dark_outlineVariant = Color(0xFF49454E)
 
+// High-contrast red-light darkroom palette
+val red_theme_dark_primary = Color(0xFFFF6B6B)
+val red_theme_dark_background = Color(0xFF150505)
+val red_theme_dark_surface = Color(0xFF1E0A0A)
+val red_theme_dark_surfaceContainer = Color(0xFF2B0F0F)
+val red_theme_dark_onSurface = Color(0xFFFFD5D5)
+
 @Composable
-fun LensFlowTheme(content: @Composable () -> Unit) {
-    val m3DarkColorScheme = darkColorScheme(
-        primary = md_theme_dark_primary,
-        onPrimary = md_theme_dark_onPrimary,
-        primaryContainer = md_theme_dark_primaryContainer,
-        onPrimaryContainer = md_theme_dark_onPrimaryContainer,
-        secondary = md_theme_dark_secondary,
-        onSecondary = md_theme_dark_onSecondary,
-        secondaryContainer = md_theme_dark_secondaryContainer,
-        onSecondaryContainer = md_theme_dark_onSecondaryContainer,
-        tertiary = md_theme_dark_tertiary,
-        onTertiary = md_theme_dark_onTertiary,
-        tertiaryContainer = md_theme_dark_tertiaryContainer,
-        onTertiaryContainer = md_theme_dark_onTertiaryContainer,
-        background = md_theme_dark_background,
-        onBackground = md_theme_dark_onBackground,
-        surface = md_theme_dark_surface,
-        onSurface = md_theme_dark_onSurface,
-        surfaceVariant = md_theme_dark_surfaceVariant,
-        onSurfaceVariant = md_theme_dark_onSurfaceVariant,
-        surfaceContainer = md_theme_dark_surfaceContainer,
-        surfaceContainerHigh = md_theme_dark_surfaceContainerHigh,
-        surfaceContainerHighest = md_theme_dark_surfaceContainerHighest,
-        outline = md_theme_dark_outline,
-        outlineVariant = md_theme_dark_outlineVariant
-    )
+fun LensFlowTheme(
+    isRedLight: Boolean = false,
+    content: @Composable () -> Unit
+) {
+    val m3DarkColorScheme = if (isRedLight) {
+        darkColorScheme(
+            primary = red_theme_dark_primary,
+            onPrimary = Color(0xFF4A0000),
+            primaryContainer = Color(0xFF6B1010),
+            onPrimaryContainer = Color(0xFFFFD5D5),
+            secondary = Color(0xFFFF8E8E),
+            onSecondary = Color(0xFF4A0000),
+            secondaryContainer = Color(0xFF5A1414),
+            onSecondaryContainer = Color(0xFFFFD5D5),
+            background = red_theme_dark_background,
+            onBackground = red_theme_dark_onSurface,
+            surface = red_theme_dark_surface,
+            onSurface = red_theme_dark_onSurface,
+            surfaceVariant = Color(0xFF401818),
+            onSurfaceVariant = Color(0xFFE0AAAA),
+            surfaceContainer = red_theme_dark_surfaceContainer,
+            surfaceContainerHigh = Color(0xFF361414),
+            surfaceContainerHighest = Color(0xFF441919),
+            outline = Color(0xFF8A4545),
+            outlineVariant = Color(0xFF5A2525)
+        )
+    } else {
+        darkColorScheme(
+            primary = md_theme_dark_primary,
+            onPrimary = md_theme_dark_onPrimary,
+            primaryContainer = md_theme_dark_primaryContainer,
+            onPrimaryContainer = md_theme_dark_onPrimaryContainer,
+            secondary = md_theme_dark_secondary,
+            onSecondary = md_theme_dark_onSecondary,
+            secondaryContainer = md_theme_dark_secondaryContainer,
+            onSecondaryContainer = md_theme_dark_onSecondaryContainer,
+            tertiary = md_theme_dark_tertiary,
+            onTertiary = md_theme_dark_onTertiary,
+            tertiaryContainer = md_theme_dark_tertiaryContainer,
+            onTertiaryContainer = md_theme_dark_onTertiaryContainer,
+            background = md_theme_dark_background,
+            onBackground = md_theme_dark_onBackground,
+            surface = md_theme_dark_surface,
+            onSurface = md_theme_dark_onSurface,
+            surfaceVariant = md_theme_dark_surfaceVariant,
+            onSurfaceVariant = md_theme_dark_onSurfaceVariant,
+            surfaceContainer = md_theme_dark_surfaceContainer,
+            surfaceContainerHigh = md_theme_dark_surfaceContainerHigh,
+            surfaceContainerHighest = md_theme_dark_surfaceContainerHighest,
+            outline = md_theme_dark_outline,
+            outlineVariant = md_theme_dark_outlineVariant
+        )
+    }
 
     MaterialTheme(
         colorScheme = m3DarkColorScheme,
@@ -235,7 +272,7 @@ fun LensFlowTheme(content: @Composable () -> Unit) {
 }
 
 // ==========================================
-// SAMPLE SYNTHETIC DOCUMENT GENERATOR
+// SAMPLE SYNTHETIC DOCUMENT GENERATOR (FOR LOCAL TESTING)
 // ==========================================
 
 fun createSampleDocument(context: Context, mode: String): Uri {
@@ -278,25 +315,25 @@ fun createSampleDocument(context: Context, mode: String): Uri {
             canvas.drawText("Due Friday: File expense reimbursement under R&D", 60f, 650f, boldTextPaint)
         }
         "Whiteboard" -> {
-            canvas.drawText("iQOO SPRINT ROADMAP", 180f, 100f, titlePaint)
-            canvas.drawText("• Milestone 1: Finalize On-Device NPU inference by 3 PM", 60f, 200f, textPaint)
-            canvas.drawText("• Milestone 2: Office Kit Screen Mirror demo Friday 10 AM", 60f, 270f, textPaint)
-            canvas.drawText("• Task: Verify ML Kit OCR sub-50ms latency", 60f, 340f, textPaint)
-            canvas.drawText("• Deliverable: Submit production APK for live pitch", 60f, 410f, textPaint)
-            canvas.drawText("Lead: Sagar Gurav (Lead AI Engineer)", 60f, 520f, boldTextPaint)
+            canvas.drawText("PROJECT SPRINT ROADMAP", 180f, 100f, titlePaint)
+            canvas.drawText("• Milestone 1: Finalize on-device OCR inference pipeline", 60f, 200f, textPaint)
+            canvas.drawText("• Milestone 2: Verify PC clipboard synchronization demo", 60f, 270f, textPaint)
+            canvas.drawText("• Task: Complete accessibility labels & WCAG contrast checks", 60f, 340f, textPaint)
+            canvas.drawText("• Deliverable: Export verified PDF summary report", 60f, 410f, textPaint)
+            canvas.drawText("Team Lead: Product Engineering", 60f, 520f, boldTextPaint)
         }
         "Business Card" -> {
-            canvas.drawText("VIVO INNOVATION LABS", 180f, 120f, titlePaint)
-            canvas.drawText("Marcus Vance — VP Smart Devices", 60f, 220f, boldTextPaint)
-            canvas.drawText("Email: marcus.vance@vivo-tech.io", 60f, 290f, textPaint)
+            canvas.drawText("INNOVATION LABS", 180f, 120f, titlePaint)
+            canvas.drawText("Alex Rivera — VP Engineering", 60f, 220f, boldTextPaint)
+            canvas.drawText("Email: alex.rivera@example.com", 60f, 290f, textPaint)
             canvas.drawText("Phone: +1 (555) 438-9901", 60f, 350f, textPaint)
-            canvas.drawText("Action: Schedule follow-up sync for Office Kit API", 60f, 450f, boldTextPaint)
+            canvas.drawText("Action: Schedule follow-up sync for API integration", 60f, 450f, boldTextPaint)
         }
         "Invoice" -> {
             canvas.drawText("TAX INVOICE #INV-2026-904", 160f, 100f, titlePaint)
             canvas.drawText("Vendor: Apex Cloud Infrastructure Ltd.", 60f, 180f, boldTextPaint)
             canvas.drawText("Due Date: Next Friday | Terms: Net 15", 60f, 240f, textPaint)
-            canvas.drawText("GPU Cluster (4x A100 Tensor): $1,240.00", 60f, 320f, textPaint)
+            canvas.drawText("Cloud Compute Infrastructure: $1,240.00", 60f, 320f, textPaint)
             canvas.drawText("Network Egress & Bandwidth: $160.00", 60f, 370f, textPaint)
             canvas.drawText("TOTAL DUE: $1,400.00", 60f, 460f, titlePaint)
             canvas.drawText("Action: Approve invoice voucher before due date", 60f, 560f, boldTextPaint)
@@ -305,8 +342,8 @@ fun createSampleDocument(context: Context, mode: String): Uri {
             canvas.drawText("HANDWRITTEN MEETING NOTES", 120f, 100f, titlePaint)
             canvas.drawText("1. Test Red Light / Green Light PC sync mode", 60f, 190f, textPaint)
             canvas.drawText("2. Check clipboard sync triggers on laptop immediately", 60f, 260f, textPaint)
-            canvas.drawText("3. Export PDF summary to PC via Vivo Office Kit", 60f, 330f, textPaint)
-            canvas.drawText("4. Rehearse 3-minute live pitch before Saturday", 60f, 400f, boldTextPaint)
+            canvas.drawText("3. Export PDF summary to PC via universal share", 60f, 330f, textPaint)
+            canvas.drawText("4. Verify complete accessibility and TalkBack support", 60f, 400f, boldTextPaint)
         }
     }
 
@@ -344,7 +381,7 @@ suspend fun runMlKitOcr(context: Context, uri: Uri?): Pair<String, Long> {
                         if (cont.isActive) cont.resumeWith(Result.success(""))
                     }
             }
-            val latency = System.currentTimeMillis() - start
+            val latency = (System.currentTimeMillis() - start).coerceAtLeast(1L)
             Pair(text, latency)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -354,13 +391,13 @@ suspend fun runMlKitOcr(context: Context, uri: Uri?): Pair<String, Long> {
 }
 
 // ==========================================
-// DOCUMENT ACTION EXTRACTOR
+// DOCUMENT ACTION EXTRACTOR (LOCAL PATTERN PARSER)
 // ==========================================
 
 fun extractActionsFromText(
     rawText: String,
     mode: String,
-    offlineModel: String,
+    engineLabel: String,
     latencyMs: Long
 ): MutableList<ActionItem> {
     val items = mutableListOf<ActionItem>()
@@ -368,7 +405,6 @@ fun extractActionsFromText(
 
     when (mode) {
         "Receipt" -> {
-            // Find total amount if present
             val amountRegex = Regex("""(\$\s*\d+(\.\d{2})?|\d+(\.\d{2})?\s*\$)""")
             val foundAmount = amountRegex.find(rawText)?.value ?: "$37.98"
             val cleanAmount = foundAmount.replace(" ", "")
@@ -385,7 +421,7 @@ fun extractActionsFromText(
                 ActionItem(
                     title = "File Expense Reimbursement",
                     dateOrTime = "Friday",
-                    details = "Submit receipt under R&D budget (synced to PC clipboard).",
+                    details = "Submit receipt under budget.",
                     category = "Finance"
                 )
             )
@@ -399,7 +435,7 @@ fun extractActionsFromText(
                         ActionItem(
                             title = clean,
                             dateOrTime = if (idx == 0) "Today 3:00 PM" else if (idx == 1) "Friday 10:00 AM" else "Next Week",
-                            details = "Parsed on-device in ${latencyMs}ms via $offlineModel.",
+                            details = "Parsed on-device in ${latencyMs}ms.",
                             category = if (idx == 0) "Milestone" else "Task"
                         )
                     )
@@ -407,17 +443,17 @@ fun extractActionsFromText(
             } else {
                 items.add(
                     ActionItem(
-                        title = "Finalize On-Device NPU inference",
+                        title = "Finalize on-device OCR inference pipeline",
                         dateOrTime = "Today 3:00 PM",
-                        details = "Benchmark sub-50ms latency for live hackathon demo.",
+                        details = "Verified sub-50ms local text extraction.",
                         category = "Milestone"
                     )
                 )
                 items.add(
                     ActionItem(
-                        title = "Vivo Office Kit screen mirror demo",
+                        title = "Verify PC clipboard synchronization demo",
                         dateOrTime = "Friday 10:00 AM",
-                        details = "Rehearse laptop bridge and remote scanner trigger.",
+                        details = "Check seamless desktop workflow bridge.",
                         category = "Milestone"
                     )
                 )
@@ -432,13 +468,13 @@ fun extractActionsFromText(
                 ActionItem(
                     title = "Follow up with $nameLine",
                     dateOrTime = "Today",
-                    details = listOfNotNull(emailLine, phoneLine).joinToString(" | ").ifBlank { "VP Engineering, Horizon AI" },
+                    details = listOfNotNull(emailLine, phoneLine).joinToString(" | ").ifBlank { "VP Engineering" },
                     category = "Contact"
                 )
             )
             items.add(
                 ActionItem(
-                    title = "Schedule Office Kit partnership call",
+                    title = "Schedule follow-up partnership sync",
                     dateOrTime = "Tomorrow 11 AM",
                     details = "Cross-device workflow integration with PC bridge.",
                     category = "Meeting"
@@ -454,13 +490,13 @@ fun extractActionsFromText(
                 ActionItem(
                     title = "Approve Invoice ($cleanAmount)",
                     dateOrTime = "Next Friday",
-                    details = "Processed via $offlineModel on-device in ${latencyMs}ms.",
+                    details = "Processed via ML Kit on-device in ${latencyMs}ms.",
                     category = "Finance"
                 )
             )
             items.add(
                 ActionItem(
-                    title = "Push Invoice PDF to Laptop via Office Kit",
+                    title = "Export Invoice PDF to PC",
                     dateOrTime = "Immediate",
                     details = "Export clean PDF document for accounting records.",
                     category = "PC Sync"
@@ -498,7 +534,7 @@ suspend fun processDocumentWithAi(
     uri: Uri?,
     mode: String,
     isOffline: Boolean,
-    offlineModel: String
+    parserType: String
 ): ExtractionResult {
     return withContext(Dispatchers.IO) {
         val (mlKitText, mlKitLatency) = runMlKitOcr(context, uri)
@@ -516,11 +552,11 @@ suspend fun processDocumentWithAi(
             val cloudStart = System.currentTimeMillis()
             try {
                 val client = OkHttpClient.Builder()
-                    .connectTimeout(15, TimeUnit.SECONDS)
-                    .readTimeout(15, TimeUnit.SECONDS)
+                    .connectTimeout(12, TimeUnit.SECONDS)
+                    .readTimeout(12, TimeUnit.SECONDS)
                     .build()
 
-                val prompt = "Extract 3 concise actionable items from this $mode document: $mlKitText. Respond with a JSON array: [{\"title\":\"...\",\"due\":\"...\",\"details\":\"...\",\"category\":\"...\"}]"
+                val prompt = "Extract 3 concise actionable items from this $mode document text: \"$mlKitText\". Respond with ONLY a valid JSON array: [{\"title\":\"...\",\"due\":\"...\",\"details\":\"...\",\"category\":\"...\"}]"
                 val requestJson = JSONObject().apply {
                     put("contents", JSONArray().apply {
                         put(JSONObject().apply {
@@ -532,7 +568,7 @@ suspend fun processDocumentWithAi(
                 }
 
                 val request = Request.Builder()
-                    .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=$activeApiKey")
+                    .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$activeApiKey")
                     .post(requestJson.toString().toRequestBody("application/json".toMediaType()))
                     .build()
 
@@ -563,7 +599,7 @@ suspend fun processDocumentWithAi(
                                     return@withContext ExtractionResult(
                                         items = cloudItems,
                                         rawText = mlKitText,
-                                        engineName = "Cloud Gemini 3.5 Flash",
+                                        engineName = "Google Gemini 2.5 Flash (Cloud)",
                                         latencyMs = System.currentTimeMillis() - cloudStart
                                     )
                                 }
@@ -576,12 +612,12 @@ suspend fun processDocumentWithAi(
             }
         }
 
-        // On-Device fallback
-        val items = extractActionsFromText(mlKitText, mode, offlineModel, mlKitLatency)
+        // On-Device Local Processing
+        val items = extractActionsFromText(mlKitText, mode, parserType, mlKitLatency)
         ExtractionResult(
             items = items,
             rawText = mlKitText,
-            engineName = "Google ML Kit + $offlineModel (NPU)",
+            engineName = "Google ML Kit (On-Device OCR)",
             latencyMs = mlKitLatency
         )
     }
@@ -608,7 +644,7 @@ fun createExportPdf(context: Context, record: ScanRecord): Uri? {
             textSize = 12f
         }
         val orangePaint = Paint().apply {
-            color = android.graphics.Color.rgb(255, 140, 60)
+            color = android.graphics.Color.rgb(220, 100, 20)
             textSize = 14f
             isFakeBoldText = true
         }
@@ -619,7 +655,7 @@ fun createExportPdf(context: Context, record: ScanRecord): Uri? {
         }
 
         canvas.drawText("LensFlow AI — Document Summary", 40f, 50f, titlePaint)
-        canvas.drawText("Generated on ${record.timestamp} via Vivo Office Kit", 40f, 72f, subPaint)
+        canvas.drawText("Generated on ${record.timestamp}", 40f, 72f, subPaint)
         canvas.drawText("Processing Engine: ${record.engineName} (${record.latencyMs}ms)", 40f, 90f, subPaint)
 
         canvas.drawLine(40f, 110f, 555f, 110f, Paint().apply { color = android.graphics.Color.LTGRAY })
@@ -666,9 +702,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            LensFlowTheme {
-                LensFlowApp()
-            }
+            LensFlowApp()
         }
     }
 }
@@ -688,7 +722,7 @@ fun LensFlowApp() {
 
     var selectedMode by remember { mutableStateOf("Receipt") }
     var isOfflineMode by remember { mutableStateOf(true) }
-    var selectedOfflineModel by remember { mutableStateOf("Gemini Nano 3.2B") }
+    var selectedParserOption by remember { mutableStateOf("Smart Entity Parser") }
     var isRedLightMode by remember { mutableStateOf(false) }
 
     var officeKitState by remember { mutableStateOf(OfficeKitState()) }
@@ -709,7 +743,7 @@ fun LensFlowApp() {
                 uri = uri,
                 mode = mode,
                 isOffline = isOfflineMode,
-                offlineModel = selectedOfflineModel
+                parserType = selectedParserOption
             )
             val newRec = ScanRecord(
                 title = "$mode Document",
@@ -725,7 +759,9 @@ fun LensFlowApp() {
             currentRecord = newRec
 
             telemetry.totalScans += 1
-            telemetry.onDeviceInferences += 1
+            if (isOfflineMode) {
+                telemetry.onDeviceInferences += 1
+            }
             telemetry.totalInferenceMs += extraction.latencyMs
             if (officeKitState.clipboardSyncEnabled) {
                 telemetry.clipboardSyncs += 1
@@ -736,212 +772,229 @@ fun LensFlowApp() {
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        when (activeScreen) {
-            ActiveScreen.MAIN_TABS -> {
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    containerColor = MaterialTheme.colorScheme.background,
-                    floatingActionButton = {
-                        if (activeTab == NavTab.HOME) {
-                            ExtendedFloatingActionButton(
-                                onClick = { activeScreen = ActiveScreen.CAMERA_VIEW },
-                                icon = { Icon(Icons.Default.CameraAlt, contentDescription = null) },
-                                text = { Text("Scan Document", fontWeight = FontWeight.Bold) },
-                                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 3.dp)
-                            )
+    LensFlowTheme(isRedLight = isRedLightMode) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            when (activeScreen) {
+                ActiveScreen.MAIN_TABS -> {
+                    Scaffold(
+                        modifier = Modifier.fillMaxSize(),
+                        containerColor = MaterialTheme.colorScheme.background,
+                        floatingActionButton = {
+                            if (activeTab == NavTab.HOME) {
+                                ExtendedFloatingActionButton(
+                                    onClick = { activeScreen = ActiveScreen.CAMERA_VIEW },
+                                    icon = { Icon(Icons.Default.CameraAlt, contentDescription = null) },
+                                    text = { Text("Scan Document", fontWeight = FontWeight.Bold) },
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 3.dp),
+                                    modifier = Modifier.semantics {
+                                        contentDescription = "Open camera to scan a physical document"
+                                    }
+                                )
+                            }
+                        },
+                        bottomBar = {
+                            NavigationBar(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                tonalElevation = 3.dp,
+                                windowInsets = WindowInsets.navigationBars
+                            ) {
+                                NavigationBarItem(
+                                    selected = activeTab == NavTab.HOME,
+                                    onClick = { activeTab = NavTab.HOME },
+                                    icon = {
+                                        Icon(
+                                            if (activeTab == NavTab.HOME) Icons.Filled.DocumentScanner else Icons.Outlined.DocumentScanner,
+                                            contentDescription = "Scan Tab"
+                                        )
+                                    },
+                                    label = { Text("Scan") },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                                        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                    ),
+                                    modifier = Modifier.semantics {
+                                        role = Role.Tab
+                                        stateDescription = if (activeTab == NavTab.HOME) "Selected" else "Not selected"
+                                    }
+                                )
+                                NavigationBarItem(
+                                    selected = activeTab == NavTab.TASKS,
+                                    onClick = { activeTab = NavTab.TASKS },
+                                    icon = {
+                                        Icon(
+                                            if (activeTab == NavTab.TASKS) Icons.Filled.Checklist else Icons.Outlined.Checklist,
+                                            contentDescription = "Tasks Tab"
+                                        )
+                                    },
+                                    label = { Text("Tasks") },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                                        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                    ),
+                                    modifier = Modifier.semantics {
+                                        role = Role.Tab
+                                        stateDescription = if (activeTab == NavTab.TASKS) "Selected" else "Not selected"
+                                    }
+                                )
+                                NavigationBarItem(
+                                    selected = activeTab == NavTab.PC_SETTINGS,
+                                    onClick = { activeTab = NavTab.PC_SETTINGS },
+                                    icon = {
+                                        Icon(
+                                            if (activeTab == NavTab.PC_SETTINGS) Icons.Filled.Laptop else Icons.Outlined.Laptop,
+                                            contentDescription = "PC Link Tab"
+                                        )
+                                    },
+                                    label = { Text("PC Link") },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                                        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                    ),
+                                    modifier = Modifier.semantics {
+                                        role = Role.Tab
+                                        stateDescription = if (activeTab == NavTab.PC_SETTINGS) "Selected" else "Not selected"
+                                    }
+                                )
+                            }
                         }
-                    },
-                    bottomBar = {
-                        NavigationBar(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                            tonalElevation = 3.dp,
-                            windowInsets = WindowInsets.navigationBars
+                    ) { padding ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(padding)
                         ) {
-                            NavigationBarItem(
-                                selected = activeTab == NavTab.HOME,
-                                onClick = { activeTab = NavTab.HOME },
-                                icon = {
-                                    Icon(
-                                        if (activeTab == NavTab.HOME) Icons.Filled.DocumentScanner else Icons.Outlined.DocumentScanner,
-                                        contentDescription = "Scan"
-                                    )
-                                },
-                                label = { Text("Scan") },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            when (activeTab) {
+                                NavTab.HOME -> MD3HomeScreen(
+                                    onOpenScanner = { activeScreen = ActiveScreen.CAMERA_VIEW },
+                                    onQuickSample = { mode ->
+                                        val sampleUri = createSampleDocument(context, mode)
+                                        triggerScanWithUri(sampleUri, mode)
+                                    },
+                                    onOpenRecord = { rec ->
+                                        currentRecord = rec
+                                        activeScreen = ActiveScreen.RESULT_DETAILS
+                                    },
+                                    records = records,
+                                    isOffline = isOfflineMode,
+                                    officeKitConnected = officeKitState.isConnected
                                 )
-                            )
-                            NavigationBarItem(
-                                selected = activeTab == NavTab.TASKS,
-                                onClick = { activeTab = NavTab.TASKS },
-                                icon = {
-                                    Icon(
-                                        if (activeTab == NavTab.TASKS) Icons.Filled.Checklist else Icons.Outlined.Checklist,
-                                        contentDescription = "Tasks"
-                                    )
-                                },
-                                label = { Text("Tasks") },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                NavTab.TASKS -> MD3TasksScreen(
+                                    records = records,
+                                    onOpenRecord = { rec ->
+                                        currentRecord = rec
+                                        activeScreen = ActiveScreen.RESULT_DETAILS
+                                    },
+                                    onToggleItem = { rec, item ->
+                                        item.isChecked = !item.isChecked
+                                        view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+                                    }
                                 )
-                            )
-                            NavigationBarItem(
-                                selected = activeTab == NavTab.PC_SETTINGS,
-                                onClick = { activeTab = NavTab.PC_SETTINGS },
-                                icon = {
-                                    Icon(
-                                        if (activeTab == NavTab.PC_SETTINGS) Icons.Filled.Laptop else Icons.Outlined.Laptop,
-                                        contentDescription = "PC Link"
-                                    )
-                                },
-                                label = { Text("PC Link") },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                NavTab.PC_SETTINGS -> MD3PcSettingsScreen(
+                                    officeKit = officeKitState,
+                                    onToggleClipboard = { officeKitState = officeKitState.copy(clipboardSyncEnabled = it) },
+                                    onToggleMirror = {
+                                        val next = !officeKitState.isScreenMirroring
+                                        officeKitState = officeKitState.copy(isScreenMirroring = next)
+                                        telemetry.pcInteractions += 1
+                                        Toast.makeText(context, if (next) "Screen mirrored to ${officeKitState.deviceName}" else "Screen mirror paused", Toast.LENGTH_SHORT).show()
+                                    },
+                                    onTriggerRemoteScan = {
+                                        telemetry.pcInteractions += 1
+                                        Toast.makeText(context, "Remote scan triggered from PC link", Toast.LENGTH_SHORT).show()
+                                        activeScreen = ActiveScreen.CAMERA_VIEW
+                                    },
+                                    isOffline = isOfflineMode,
+                                    onToggleOffline = { isOfflineMode = it },
+                                    selectedParser = selectedParserOption,
+                                    onSelectParser = { selectedParserOption = it },
+                                    isRedLight = isRedLightMode,
+                                    onToggleRedLight = { isRedLightMode = it },
+                                    telemetry = telemetry
                                 )
-                            )
-                        }
-                    }
-                ) { padding ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding)
-                    ) {
-                        when (activeTab) {
-                            NavTab.HOME -> MD3HomeScreen(
-                                onOpenScanner = { activeScreen = ActiveScreen.CAMERA_VIEW },
-                                onQuickSample = { mode ->
-                                    val sampleUri = createSampleDocument(context, mode)
-                                    triggerScanWithUri(sampleUri, mode)
-                                },
-                                onOpenRecord = { rec ->
-                                    currentRecord = rec
-                                    activeScreen = ActiveScreen.RESULT_DETAILS
-                                },
-                                records = records,
-                                isOffline = isOfflineMode,
-                                officeKitConnected = officeKitState.isConnected
-                            )
-                            NavTab.TASKS -> MD3TasksScreen(
-                                records = records,
-                                onOpenRecord = { rec ->
-                                    currentRecord = rec
-                                    activeScreen = ActiveScreen.RESULT_DETAILS
-                                },
-                                onToggleItem = { rec, item ->
-                                    item.isChecked = !item.isChecked
-                                    view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
-                                }
-                            )
-                            NavTab.PC_SETTINGS -> MD3PcSettingsScreen(
-                                officeKit = officeKitState,
-                                onToggleClipboard = { officeKitState = officeKitState.copy(clipboardSyncEnabled = it) },
-                                onToggleMirror = {
-                                    val next = !officeKitState.isScreenMirroring
-                                    officeKitState = officeKitState.copy(isScreenMirroring = next)
-                                    telemetry.pcInteractions += 1
-                                    Toast.makeText(context, if (next) "🖥️ Screen mirrored to ${officeKitState.deviceName}" else "Screen mirror paused", Toast.LENGTH_SHORT).show()
-                                },
-                                onTriggerRemoteScan = {
-                                    telemetry.pcInteractions += 1
-                                    Toast.makeText(context, "💻 Remote scan triggered from PC keyboard!", Toast.LENGTH_SHORT).show()
-                                    activeScreen = ActiveScreen.CAMERA_VIEW
-                                },
-                                isOffline = isOfflineMode,
-                                onToggleOffline = { isOfflineMode = it },
-                                selectedModel = selectedOfflineModel,
-                                onSelectModel = { selectedOfflineModel = it },
-                                isRedLight = isRedLightMode,
-                                onToggleRedLight = { isRedLightMode = it },
-                                telemetry = telemetry
-                            )
+                            }
                         }
                     }
                 }
-            }
 
-            ActiveScreen.CAMERA_VIEW -> MD3CameraScreen(
-                selectedMode = selectedMode,
-                onModeSelect = { selectedMode = it },
-                onBack = { activeScreen = ActiveScreen.MAIN_TABS },
-                onCapture = { uri -> triggerScanWithUri(uri, selectedMode) },
-                onSampleClick = {
-                    val sampleUri = createSampleDocument(context, selectedMode)
-                    triggerScanWithUri(sampleUri, selectedMode)
-                },
-                isOffline = isOfflineMode,
-                onToggleOffline = { isOfflineMode = it }
-            )
+                ActiveScreen.CAMERA_VIEW -> MD3CameraScreen(
+                    selectedMode = selectedMode,
+                    onModeSelect = { selectedMode = it },
+                    onBack = { activeScreen = ActiveScreen.MAIN_TABS },
+                    onCapture = { uri -> triggerScanWithUri(uri, selectedMode) },
+                    onSampleClick = {
+                        val sampleUri = createSampleDocument(context, selectedMode)
+                        triggerScanWithUri(sampleUri, selectedMode)
+                    },
+                    isOffline = isOfflineMode,
+                    onToggleOffline = { isOfflineMode = it }
+                )
 
-            ActiveScreen.PROCESSING_VIEW -> MD3ProcessingScreen(
-                mode = selectedMode,
-                isOffline = isOfflineMode,
-                modelName = selectedOfflineModel
-            )
+                ActiveScreen.PROCESSING_VIEW -> MD3ProcessingScreen(
+                    mode = selectedMode,
+                    isOffline = isOfflineMode,
+                    engineLabel = if (isOfflineMode) "Google ML Kit (On-Device OCR)" else "Google Gemini 2.5 Flash"
+                )
 
-            ActiveScreen.RESULT_DETAILS -> {
-                val rec = currentRecord
-                if (rec != null) {
-                    MD3ResultScreen(
-                        record = rec,
-                        officeKit = officeKitState,
-                        onBack = { activeScreen = ActiveScreen.MAIN_TABS },
-                        onToggleItem = { item ->
-                            item.isChecked = !item.isChecked
-                            view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
-                        },
-                        onShareToPc = {
-                            telemetry.pcInteractions += 1
-                            telemetry.clipboardSyncs += 1
-                            val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val summary = buildString {
-                                appendLine("📋 LensFlow AI — ${rec.title}")
-                                rec.items.forEach {
-                                    appendLine("• [${it.dateOrTime}] ${it.title}: ${it.details}")
+                ActiveScreen.RESULT_DETAILS -> {
+                    val rec = currentRecord
+                    if (rec != null) {
+                        MD3ResultScreen(
+                            record = rec,
+                            officeKit = officeKitState,
+                            onBack = { activeScreen = ActiveScreen.MAIN_TABS },
+                            onToggleItem = { item ->
+                                item.isChecked = !item.isChecked
+                                view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+                            },
+                            onShareToPc = {
+                                telemetry.pcInteractions += 1
+                                telemetry.clipboardSyncs += 1
+                                val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                val summary = buildString {
+                                    appendLine("📋 LensFlow AI — ${rec.title}")
+                                    rec.items.forEach {
+                                        appendLine("• [${it.dateOrTime}] ${it.title}: ${it.details}")
+                                    }
+                                }
+                                cb.setPrimaryClip(ClipData.newPlainText("LensFlow Actions", summary))
+                                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                                Toast.makeText(context, "Copied to PC clipboard! Press Ctrl+V on your laptop.", Toast.LENGTH_LONG).show()
+                            },
+                            onExportPdf = {
+                                telemetry.pdfExports += 1
+                                telemetry.pcInteractions += 1
+                                val pdfUri = createExportPdf(context, rec)
+                                if (pdfUri != null) {
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "application/pdf"
+                                        putExtra(Intent.EXTRA_STREAM, pdfUri)
+                                        putExtra(Intent.EXTRA_SUBJECT, "LensFlow: ${rec.title}")
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(Intent.createChooser(shareIntent, "Share or Export PDF Report"))
+                                } else {
+                                    Toast.makeText(context, "Failed to create PDF", Toast.LENGTH_SHORT).show()
                                 }
                             }
-                            cb.setPrimaryClip(ClipData.newPlainText("LensFlow Actions", summary))
-                            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                            Toast.makeText(context, "⚡ Synced to PC clipboard! Press Ctrl+V on your laptop.", Toast.LENGTH_LONG).show()
-                        },
-                        onExportPdf = {
-                            telemetry.pdfExports += 1
-                            telemetry.pcInteractions += 1
-                            val pdfUri = createExportPdf(context, rec)
-                            if (pdfUri != null) {
-                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                    type = "application/pdf"
-                                    putExtra(Intent.EXTRA_STREAM, pdfUri)
-                                    putExtra(Intent.EXTRA_SUBJECT, "LensFlow: ${rec.title}")
-                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                }
-                                context.startActivity(Intent.createChooser(shareIntent, "Share or Push PDF to PC"))
-                            } else {
-                                Toast.makeText(context, "Failed to create PDF", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    )
-                } else {
-                    activeScreen = ActiveScreen.MAIN_TABS
+                        )
+                    } else {
+                        activeScreen = ActiveScreen.MAIN_TABS
+                    }
                 }
             }
         }
@@ -949,7 +1002,7 @@ fun LensFlowApp() {
 }
 
 // ==========================================
-// 1. MD3 HOME SCREEN (REDESIGNED CARD-BASED DASHBOARD)
+// 1. MD3 HOME SCREEN (ACCESSIBLE CARD-BASED DASHBOARD)
 // ==========================================
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -963,7 +1016,7 @@ fun MD3HomeScreen(
     officeKitConnected: Boolean
 ) {
     val quickPresets = listOf(
-        Triple("Receipt", "Expense & tax totals", Icons.Default.ReceiptLong),
+        Triple("Receipt", "Expense & tax totals", Icons.AutoMirrored.Filled.ReceiptLong),
         Triple("Whiteboard", "Milestones & deadlines", Icons.Default.DashboardCustomize),
         Triple("Business Card", "Contacts & follow-ups", Icons.Default.Badge),
         Triple("Invoice", "Vendor billing & items", Icons.Default.RequestQuote),
@@ -1004,7 +1057,8 @@ fun MD3HomeScreen(
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onBackground,
-                    letterSpacing = (-0.5).sp
+                    letterSpacing = (-0.5).sp,
+                    modifier = Modifier.semantics { heading() }
                 )
                 Text(
                     text = "Camera-first on-device productivity",
@@ -1018,23 +1072,26 @@ fun MD3HomeScreen(
                 Surface(
                     shape = MaterialTheme.shapes.small,
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    modifier = Modifier.semantics {
+                        contentDescription = if (isOffline) "OCR engine status: On-device offline" else "OCR engine status: Cloud connected"
+                    }
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(7.dp)
+                                .size(8.dp)
                                 .clip(CircleShape)
                                 .background(if (isOffline) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary)
                         )
                         Text(
-                            text = if (isOffline) "NPU Ready" else "Cloud AI",
+                            text = if (isOffline) "On-Device OCR" else "Cloud AI",
                             style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -1043,19 +1100,22 @@ fun MD3HomeScreen(
                 if (officeKitConnected) {
                     Surface(
                         shape = MaterialTheme.shapes.small,
-                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f))
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary),
+                        modifier = Modifier.semantics {
+                            contentDescription = "PC Link status: Connected"
+                        }
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(
                                 Icons.Default.Laptop,
-                                contentDescription = "PC Connected",
-                                modifier = Modifier.size(13.dp),
-                                tint = MaterialTheme.colorScheme.tertiary
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer
                             )
                             Text(
                                 text = "PC Linked",
@@ -1071,17 +1131,21 @@ fun MD3HomeScreen(
 
         // --- 2. Quick-Glance Summary Metrics ---
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics {
+                    contentDescription = "Overview summary: ${records.size} scanned documents, $totalPendingTasks pending tasks, average OCR latency $avgLatency milliseconds"
+                },
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Surface(
                 modifier = Modifier.weight(1f),
                 shape = MaterialTheme.shapes.medium,
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
             ) {
                 Column(
-                    modifier = Modifier.padding(vertical = 12.dp, horizontal = 14.dp),
+                    modifier = Modifier.padding(vertical = 12.dp, horizontal = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
@@ -1102,10 +1166,10 @@ fun MD3HomeScreen(
                 modifier = Modifier.weight(1f),
                 shape = MaterialTheme.shapes.medium,
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
             ) {
                 Column(
-                    modifier = Modifier.padding(vertical = 12.dp, horizontal = 14.dp),
+                    modifier = Modifier.padding(vertical = 12.dp, horizontal = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
@@ -1126,14 +1190,14 @@ fun MD3HomeScreen(
                 modifier = Modifier.weight(1f),
                 shape = MaterialTheme.shapes.medium,
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
             ) {
                 Column(
-                    modifier = Modifier.padding(vertical = 12.dp, horizontal = 14.dp),
+                    modifier = Modifier.padding(vertical = 12.dp, horizontal = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
-                        text = "Avg NPU Latency",
+                        text = "Avg OCR Latency",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1150,7 +1214,12 @@ fun MD3HomeScreen(
         // --- 3. Hero Focal Scan Card ---
         Card(
             onClick = onOpenScanner,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics {
+                    role = Role.Button
+                    contentDescription = "Scan Physical Document. Point camera to recognize text and extract actionable items"
+                },
             shape = MaterialTheme.shapes.extraLarge,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
@@ -1171,12 +1240,12 @@ fun MD3HomeScreen(
                     Surface(
                         shape = MaterialTheme.shapes.medium,
                         color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.size(46.dp)
+                        modifier = Modifier.size(48.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 Icons.Default.CameraAlt,
-                                contentDescription = "Camera Scanner",
+                                contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                 modifier = Modifier.size(24.dp)
                             )
@@ -1188,7 +1257,7 @@ fun MD3HomeScreen(
                         color = MaterialTheme.colorScheme.secondaryContainer
                     ) {
                         Text(
-                            text = "Instant Edge OCR",
+                            text = "ML Kit Vision OCR",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -1205,7 +1274,7 @@ fun MD3HomeScreen(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Point camera at any paper or screen to instantly parse dates, amounts, and tasks without cloud latency.",
+                        text = "Point camera at any paper or screen to instantly parse dates, amounts, and tasks directly on your device.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         lineHeight = 20.sp
@@ -1238,10 +1307,11 @@ fun MD3HomeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Quick Presets & Demo Samples",
+                    text = "Quick Presets & Test Samples",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.semantics { heading() }
                 )
                 Text(
                     text = "Tap to test",
@@ -1259,7 +1329,11 @@ fun MD3HomeScreen(
                         onClick = { onQuickSample(mode) },
                         modifier = Modifier
                             .width(160.dp)
-                            .height(130.dp),
+                            .height(130.dp)
+                            .semantics {
+                                role = Role.Button
+                                contentDescription = "Test preset for $mode document: $desc"
+                            },
                         shape = MaterialTheme.shapes.large,
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -1280,7 +1354,7 @@ fun MD3HomeScreen(
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         icon,
-                                        contentDescription = mode,
+                                        contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(20.dp)
                                     )
@@ -1319,7 +1393,8 @@ fun MD3HomeScreen(
                     text = "Recent Scans",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.semantics { heading() }
                 )
                 Text(
                     text = "${filteredRecords.size} found",
@@ -1350,7 +1425,13 @@ fun MD3HomeScreen(
                             selected = selectedFilterCategory == filter,
                             borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                         ),
-                        shape = MaterialTheme.shapes.small
+                        shape = MaterialTheme.shapes.small,
+                        modifier = Modifier
+                            .heightIn(min = 48.dp)
+                            .semantics {
+                                role = Role.RadioButton
+                                stateDescription = if (selectedFilterCategory == filter) "Selected" else "Not selected"
+                            }
                     )
                 }
             }
@@ -1372,13 +1453,14 @@ fun MD3HomeScreen(
                         Icon(
                             Icons.Outlined.DocumentScanner,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(36.dp)
                         )
                         Text(
-                            text = "No documents found in this filter",
+                            text = if (records.isEmpty()) "No documents scanned yet. Tap 'Scan Document' or choose a test sample above!" else "No documents found under '$selectedFilterCategory'.",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
@@ -1386,7 +1468,12 @@ fun MD3HomeScreen(
                 filteredRecords.forEach { record ->
                     ElevatedCard(
                         onClick = { onOpenRecord(record) },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics {
+                                role = Role.Button
+                                contentDescription = "Open scan details for ${record.title}, type ${record.type}, containing ${record.items.size} action items, processed in ${record.latencyMs} milliseconds"
+                            },
                         shape = MaterialTheme.shapes.large,
                         colors = CardDefaults.elevatedCardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -1407,11 +1494,11 @@ fun MD3HomeScreen(
                                 Surface(
                                     shape = MaterialTheme.shapes.medium,
                                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                    modifier = Modifier.size(42.dp)
+                                    modifier = Modifier.size(44.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         val icon = when (record.type) {
-                                            "Receipt" -> Icons.Default.ReceiptLong
+                                            "Receipt" -> Icons.AutoMirrored.Filled.ReceiptLong
                                             "Whiteboard" -> Icons.Default.DashboardCustomize
                                             "Business Card" -> Icons.Default.Badge
                                             "Invoice" -> Icons.Default.RequestQuote
@@ -1446,7 +1533,7 @@ fun MD3HomeScreen(
                                     Icons.AutoMirrored.Filled.ArrowForwardIos,
                                     contentDescription = "View Details",
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(14.dp)
+                                    modifier = Modifier.size(16.dp)
                                 )
                             }
 
@@ -1458,7 +1545,7 @@ fun MD3HomeScreen(
                             ) {
                                 Surface(
                                     shape = MaterialTheme.shapes.extraSmall,
-                                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f)
+                                    color = MaterialTheme.colorScheme.secondaryContainer
                                 ) {
                                     Text(
                                         text = "${record.items.size} action items",
@@ -1474,7 +1561,7 @@ fun MD3HomeScreen(
                                     color = MaterialTheme.colorScheme.surfaceContainerHigh
                                 ) {
                                     Text(
-                                        text = "${record.latencyMs}ms",
+                                        text = "${record.latencyMs}ms OCR",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -1492,7 +1579,7 @@ fun MD3HomeScreen(
 }
 
 // ==========================================
-// 2. MD3 TASKS SCREEN
+// 2. MD3 TASKS SCREEN (ACCESSIBLE CHECKLIST)
 // ==========================================
 
 @Composable
@@ -1521,22 +1608,28 @@ fun MD3TasksScreen(
                 text = "Action Items",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.semantics { heading() }
             )
             Text(
-                text = "$completedCount of $totalCount tasks completed",
+                text = if (totalCount > 0) "$completedCount of $totalCount tasks completed" else "No pending tasks",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
-        // MD3 Linear Progress Indicator
+        // MD3 Linear Progress Indicator with accessibility range
+        val progressVal = if (totalCount > 0) completedCount.toFloat() / totalCount.toFloat() else 0f
         LinearProgressIndicator(
-            progress = { if (totalCount > 0) completedCount.toFloat() / totalCount.toFloat() else 0f },
+            progress = { progressVal },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(6.dp)
-                .clip(MaterialTheme.shapes.small),
+                .height(8.dp)
+                .clip(MaterialTheme.shapes.small)
+                .semantics {
+                    progressBarRangeInfo = ProgressBarRangeInfo(progressVal, 0f..1f)
+                    contentDescription = "$completedCount of $totalCount tasks completed"
+                },
             color = MaterialTheme.colorScheme.secondary,
             trackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             strokeCap = StrokeCap.Round
@@ -1573,12 +1666,18 @@ fun MD3TasksScreen(
                 allItemsWithRecord.forEach { (rec, item) ->
                     Card(
                         onClick = { onToggleItem(rec, item) },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics {
+                                role = Role.Checkbox
+                                stateDescription = if (item.isChecked) "Completed" else "Not completed"
+                                contentDescription = "Task: ${item.title}. Due ${item.dateOrTime}. ${item.details}"
+                            },
                         shape = MaterialTheme.shapes.large,
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceContainer
                         ),
-                        border = if (item.isChecked) BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f)) else null
+                        border = if (item.isChecked) BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)) else null
                     ) {
                         Row(
                             modifier = Modifier
@@ -1594,7 +1693,8 @@ fun MD3TasksScreen(
                                     checkedColor = MaterialTheme.colorScheme.secondary,
                                     checkmarkColor = MaterialTheme.colorScheme.onSecondary,
                                     uncheckedColor = MaterialTheme.colorScheme.outline
-                                )
+                                ),
+                                modifier = Modifier.size(48.dp)
                             )
 
                             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -1662,13 +1762,13 @@ fun MD3PcSettingsScreen(
     onTriggerRemoteScan: () -> Unit,
     isOffline: Boolean,
     onToggleOffline: (Boolean) -> Unit,
-    selectedModel: String,
-    onSelectModel: (String) -> Unit,
+    selectedParser: String,
+    onSelectParser: (String) -> Unit,
     isRedLight: Boolean,
     onToggleRedLight: (Boolean) -> Unit,
     telemetry: TelemetryData
 ) {
-    val models = listOf("Gemini Nano 3.2B", "Phi-3 Mini 3.8B", "Gemma 2 2B")
+    val parserModes = listOf("Smart Entity Parser", "Fast Heuristic Parser", "Structured Table Parser")
 
     Column(
         modifier = Modifier
@@ -1680,13 +1780,14 @@ fun MD3PcSettingsScreen(
         // Top Header
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
-                text = "Vivo Office Kit & AI",
+                text = "PC Link & Settings",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.semantics { heading() }
             )
             Text(
-                text = "Phone-laptop bridge and on-device NPU settings",
+                text = "Cross-device clipboard and local extraction preferences",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -1711,7 +1812,7 @@ fun MD3PcSettingsScreen(
                         Surface(
                             shape = MaterialTheme.shapes.medium,
                             color = MaterialTheme.colorScheme.tertiaryContainer,
-                            modifier = Modifier.size(40.dp)
+                            modifier = Modifier.size(44.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
@@ -1730,7 +1831,7 @@ fun MD3PcSettingsScreen(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "Wi-Fi Direct • ${officeKit.latencyMs}ms latency",
+                                text = "Local Wi-Fi Network • ${officeKit.latencyMs}ms latency",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.secondary
                             )
@@ -1741,15 +1842,25 @@ fun MD3PcSettingsScreen(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                     ) {
-                        Text("Connected", modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            "Connected",
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
 
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
                 // Universal Clipboard Toggle
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics {
+                            role = Role.Switch
+                            stateDescription = if (officeKit.clipboardSyncEnabled) "Enabled" else "Disabled"
+                        },
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -1776,51 +1887,60 @@ fun MD3PcSettingsScreen(
                     )
                 }
 
-                // Screen Mirror Action
+                // Darkroom Red-Light Mode
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics {
+                            role = Role.Switch
+                            stateDescription = if (isRedLight) "Red-light mode enabled" else "Standard dark theme"
+                        },
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Screen Mirroring to PC",
+                            text = "Darkroom Red-Light Theme",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = if (officeKit.isScreenMirroring) "Active streaming to laptop" else "Mirror phone screen on laptop display",
+                            text = "Red-wavelength palette to preserve night vision",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    FilledTonalButton(
-                        onClick = onToggleMirror,
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Text(if (officeKit.isScreenMirroring) "Stop" else "Mirror")
-                    }
+                    Switch(
+                        checked = isRedLight,
+                        onCheckedChange = onToggleRedLight,
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                            checkedTrackColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
                 }
 
                 // Remote Trigger
                 Button(
                     onClick = onTriggerRemoteScan,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp),
                     shape = MaterialTheme.shapes.medium,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                         contentColor = MaterialTheme.colorScheme.onSurface
                     )
                 ) {
-                    Icon(Icons.Default.Keyboard, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Keyboard, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Simulate Laptop Keyboard Trigger (Ctrl+Shift+S)", fontSize = 13.sp)
+                    Text("Trigger Remote Scan from PC Shortcut", fontSize = 13.sp)
                 }
             }
         }
 
-        // On-Device AI Engine Selection
+        // On-Device OCR Pipeline Configuration
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.large,
@@ -1828,26 +1948,32 @@ fun MD3PcSettingsScreen(
         ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "AI Inference Engine",
+                    text = "Text Extraction Engine",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.semantics { heading() }
                 )
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics {
+                            role = Role.Switch
+                            stateDescription = if (isOffline) "Offline processing enabled" else "Cloud AI enabled"
+                        },
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Force On-Device NPU Only",
+                            text = "On-Device ML Kit OCR Only",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "100% offline, zero cloud API footprint",
+                            text = "100% offline, zero cloud API data transmission",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -1863,48 +1989,53 @@ fun MD3PcSettingsScreen(
                 }
 
                 Text(
-                    text = "Selected Local NPU Model:",
+                    text = "Local Entity Parser Strategy:",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                models.forEach { model ->
+                parserModes.forEach { mode ->
                     OutlinedCard(
-                        onClick = { onSelectModel(model) },
-                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { onSelectParser(mode) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics {
+                                role = Role.RadioButton
+                                stateDescription = if (selectedParser == mode) "Selected" else "Not selected"
+                            },
                         shape = MaterialTheme.shapes.medium,
-                        border = if (selectedModel == model) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        border = if (selectedParser == mode) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                         colors = CardDefaults.outlinedCardColors(
-                            containerColor = if (selectedModel == model) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceContainerHigh
+                            containerColor = if (selectedParser == mode) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f) else MaterialTheme.colorScheme.surfaceContainerHigh
                         )
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(12.dp),
+                                .padding(14.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     Icons.Default.Memory,
                                     contentDescription = null,
-                                    tint = if (selectedModel == model) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(18.dp)
+                                    tint = if (selectedParser == mode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(20.dp)
                                 )
                                 Text(
-                                    text = model,
-                                    fontWeight = if (selectedModel == model) FontWeight.Bold else FontWeight.Medium,
+                                    text = mode,
+                                    fontWeight = if (selectedParser == mode) FontWeight.Bold else FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     fontSize = 14.sp
                                 )
                             }
-                            if (selectedModel == model) {
+                            if (selectedParser == mode) {
                                 Icon(
                                     Icons.Default.CheckCircle,
-                                    contentDescription = null,
+                                    contentDescription = "Selected",
                                     tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
@@ -1913,7 +2044,7 @@ fun MD3PcSettingsScreen(
             }
         }
 
-        // Live Telemetry / Competition Proof Metrics
+        // Live Telemetry Performance Metrics
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.large,
@@ -1921,10 +2052,11 @@ fun MD3PcSettingsScreen(
         ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    text = "HackTracker Performance Telemetry",
+                    text = "OCR & Productivity Metrics",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.semantics { heading() }
                 )
 
                 Row(
@@ -1944,7 +2076,9 @@ fun MD3PcSettingsScreen(
 @Composable
 fun TelemetryStatBox(title: String, value: String, modifier: Modifier = Modifier) {
     Surface(
-        modifier = modifier,
+        modifier = modifier.semantics {
+            contentDescription = "$title: $value"
+        },
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surfaceContainerHigh
     ) {
@@ -1960,7 +2094,7 @@ fun TelemetryStatBox(title: String, value: String, modifier: Modifier = Modifier
 }
 
 // ==========================================
-// 4. MD3 CAMERA SCREEN
+// 4. MD3 CAMERA SCREEN (ACCESSIBLE VIEWFINDER)
 // ==========================================
 
 @Composable
@@ -2035,7 +2169,10 @@ fun MD3CameraScreen(
                 ) {
                     Icon(Icons.Default.CameraAlt, contentDescription = null, tint = Color.White, modifier = Modifier.size(48.dp))
                     Text("Camera Access Required", style = MaterialTheme.typography.titleMedium, color = Color.White)
-                    Button(onClick = { launcher.launch(Manifest.permission.CAMERA) }) {
+                    Button(
+                        onClick = { launcher.launch(Manifest.permission.CAMERA) },
+                        modifier = Modifier.heightIn(min = 48.dp)
+                    ) {
                         Text("Grant Permission")
                     }
                 }
@@ -2069,7 +2206,7 @@ fun MD3CameraScreen(
 
             // Bottom-right
             drawLine(color, Offset(insetX + rectW, insetY + rectH), Offset(insetX + rectW - bracketLen, insetY + rectH), stroke)
-            drawLine(color, Offset(insetX + rectW, insetY + rectH), Offset(insetX + rectW, insetY + rectH - bracketLen), stroke)
+            drawLine(color, Offset(insetX + rectW, insetY + rectH), Offset(insetX + rectW, insetY + bracketLen), stroke)
         }
 
         // Top Bar Controls
@@ -2083,18 +2220,28 @@ fun MD3CameraScreen(
         ) {
             FilledIconButton(
                 onClick = onBack,
-                colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color.Black.copy(alpha = 0.5f))
+                colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color.Black.copy(alpha = 0.6f)),
+                modifier = Modifier
+                    .size(48.dp)
+                    .semantics {
+                        contentDescription = "Navigate back to home screen"
+                    }
             ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.White)
             }
 
             Surface(
                 shape = RoundedCornerShape(50),
-                color = Color.Black.copy(alpha = 0.5f),
-                modifier = Modifier.clickable { onToggleOffline(!isOffline) }
+                color = Color.Black.copy(alpha = 0.6f),
+                modifier = Modifier
+                    .clickable { onToggleOffline(!isOffline) }
+                    .semantics {
+                        role = Role.Button
+                        contentDescription = if (isOffline) "Mode: On-Device OCR. Tap to switch" else "Mode: Cloud OCR. Tap to switch"
+                    }
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
@@ -2105,7 +2252,7 @@ fun MD3CameraScreen(
                             .background(if (isOffline) md_theme_dark_secondary else md_theme_dark_primary)
                     )
                     Text(
-                        text = if (isOffline) "NPU Local (Offline)" else "Hybrid Cloud",
+                        text = if (isOffline) "On-Device OCR" else "Cloud AI",
                         color = Color.White,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -2115,9 +2262,14 @@ fun MD3CameraScreen(
 
             FilledIconButton(
                 onClick = { isFlashOn = !isFlashOn },
-                colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color.Black.copy(alpha = 0.5f))
+                colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color.Black.copy(alpha = 0.6f)),
+                modifier = Modifier
+                    .size(48.dp)
+                    .semantics {
+                        contentDescription = if (isFlashOn) "Turn off flash" else "Turn on flash"
+                    }
             ) {
-                Icon(if (isFlashOn) Icons.Default.FlashOn else Icons.Default.FlashOff, contentDescription = "Flash", tint = Color.White)
+                Icon(if (isFlashOn) Icons.Default.FlashOn else Icons.Default.FlashOff, contentDescription = null, tint = Color.White)
             }
         }
 
@@ -2143,7 +2295,7 @@ fun MD3CameraScreen(
                         onClick = { onModeSelect(mode) },
                         label = { Text(mode, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
                         colors = FilterChipDefaults.filterChipColors(
-                            containerColor = Color.Black.copy(alpha = 0.6f),
+                            containerColor = Color.Black.copy(alpha = 0.7f),
                             labelColor = Color.White,
                             selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                             selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -2151,9 +2303,15 @@ fun MD3CameraScreen(
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
                             selected = isSelected,
-                            borderColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.3f)
+                            borderColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.4f)
                         ),
-                        shape = MaterialTheme.shapes.medium
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier
+                            .heightIn(min = 48.dp)
+                            .semantics {
+                                role = Role.RadioButton
+                                stateDescription = if (isSelected) "Selected mode $mode" else "Mode $mode"
+                            }
                     )
                 }
             }
@@ -2170,8 +2328,13 @@ fun MD3CameraScreen(
                 OutlinedButton(
                     onClick = onSampleClick,
                     shape = MaterialTheme.shapes.medium,
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.4f)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.6f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                    modifier = Modifier
+                        .heightIn(min = 48.dp)
+                        .semantics {
+                            contentDescription = "Test scanning with a synthetic sample document"
+                        }
                 ) {
                     Icon(Icons.Default.AutoFixHigh, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
@@ -2183,7 +2346,7 @@ fun MD3CameraScreen(
                     modifier = Modifier
                         .size(76.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.2f))
+                        .background(Color.White.copy(alpha = 0.3f))
                         .clickable {
                             val file = File(context.cacheDir, "scan_${System.currentTimeMillis()}.jpg")
                             val outputOptions = ImageCapture.OutputFileOptions.Builder(file).build()
@@ -2199,6 +2362,10 @@ fun MD3CameraScreen(
                                     }
                                 }
                             ) ?: onSampleClick()
+                        }
+                        .semantics {
+                            role = Role.Button
+                            contentDescription = "Capture photo and scan document"
                         },
                     contentAlignment = Alignment.Center
                 ) {
@@ -2214,8 +2381,13 @@ fun MD3CameraScreen(
                 OutlinedButton(
                     onClick = onSampleClick,
                     shape = MaterialTheme.shapes.medium,
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.4f)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.6f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                    modifier = Modifier
+                        .heightIn(min = 48.dp)
+                        .semantics {
+                            contentDescription = "Load image from gallery or sample"
+                        }
                 ) {
                     Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
@@ -2234,20 +2406,15 @@ fun MD3CameraScreen(
 fun MD3ProcessingScreen(
     mode: String,
     isOffline: Boolean,
-    modelName: String
+    engineLabel: String
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "spin")
-    val rotation by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(animation = tween(1200, easing = LinearEasing)),
-        label = "rotation"
-    )
-
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(MaterialTheme.colorScheme.background)
+            .semantics {
+                contentDescription = "Analyzing $mode document with $engineLabel. Please wait..."
+            },
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -2281,7 +2448,7 @@ fun MD3ProcessingScreen(
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = if (isOffline) "Running Google ML Kit + $modelName on NPU" else "Processing with Gemini 3.5 Flash...",
+                    text = if (isOffline) "Running $engineLabel on-device" else "Processing with Gemini API...",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -2304,7 +2471,7 @@ fun MD3ProcessingScreen(
                             .background(if (isOffline) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary)
                     )
                     Text(
-                        text = if (isOffline) "100% On-Device · Zero Cloud Latency" else "Cloud Multimodal Stream",
+                        text = if (isOffline) "On-Device · Offline OCR" else "Cloud AI Processing",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold
@@ -2316,7 +2483,7 @@ fun MD3ProcessingScreen(
 }
 
 // ==========================================
-// 6. MD3 RESULT DETAILS SCREEN
+// 6. MD3 RESULT DETAILS SCREEN (ACCESSIBLE RESULT VIEW)
 // ==========================================
 
 @Composable
@@ -2346,29 +2513,44 @@ fun MD3ResultScreen(
         ) {
             FilledIconButton(
                 onClick = onBack,
-                colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                modifier = Modifier
+                    .size(48.dp)
+                    .semantics {
+                        contentDescription = "Navigate back to recent scans"
+                    }
             ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
             }
 
             Text(
                 text = "Extraction Results",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.semantics { heading() }
             )
 
             FilledTonalIconButton(
                 onClick = onExportPdf,
-                colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                modifier = Modifier
+                    .size(48.dp)
+                    .semantics {
+                        contentDescription = "Export document summary as PDF report"
+                    }
             ) {
-                Icon(Icons.Default.PictureAsPdf, contentDescription = "Export PDF", tint = MaterialTheme.colorScheme.primary)
+                Icon(Icons.Default.PictureAsPdf, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             }
         }
 
         // Status Card
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics {
+                    contentDescription = "Document: ${record.title}. Processed by ${record.engineName} in ${record.latencyMs} milliseconds"
+                },
             shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
         ) {
@@ -2404,12 +2586,15 @@ fun MD3ResultScreen(
             }
         }
 
-        // Vivo Office Kit Primary One-Tap PC Sync Button
+        // PC Sync Button
         Button(
             onClick = onShareToPc,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp),
+                .heightIn(min = 48.dp)
+                .semantics {
+                    contentDescription = "Sync all extracted action items to PC clipboard for ${officeKit.deviceName}"
+                },
             shape = MaterialTheme.shapes.large,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
@@ -2427,16 +2612,23 @@ fun MD3ResultScreen(
                 text = "Extracted Action Items (${record.items.size})",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.semantics { heading() }
             )
 
             record.items.forEach { item ->
                 Card(
                     onClick = { onToggleItem(item) },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics {
+                            role = Role.Checkbox
+                            stateDescription = if (item.isChecked) "Completed" else "Not completed"
+                            contentDescription = "Action item: ${item.title}. Due ${item.dateOrTime}. ${item.details}"
+                        },
                     shape = MaterialTheme.shapes.large,
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-                    border = if (item.isChecked) BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f)) else null
+                    border = if (item.isChecked) BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)) else null
                 ) {
                     Row(
                         modifier = Modifier
@@ -2452,7 +2644,8 @@ fun MD3ResultScreen(
                                 checkedColor = MaterialTheme.colorScheme.secondary,
                                 checkmarkColor = MaterialTheme.colorScheme.onSecondary,
                                 uncheckedColor = MaterialTheme.colorScheme.outline
-                            )
+                            ),
+                            modifier = Modifier.size(48.dp)
                         )
 
                         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -2502,7 +2695,12 @@ fun MD3ResultScreen(
                     }
                     context.startActivity(calIntent)
                 },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 48.dp)
+                    .semantics {
+                        contentDescription = "Create calendar event from top action item"
+                    },
                 shape = MaterialTheme.shapes.medium
             ) {
                 Icon(Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -2520,7 +2718,12 @@ fun MD3ResultScreen(
                     }
                     context.startActivity(emailIntent)
                 },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 48.dp)
+                    .semantics {
+                        contentDescription = "Draft email with extracted action items"
+                    },
                 shape = MaterialTheme.shapes.medium
             ) {
                 Icon(Icons.Default.Email, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -2535,7 +2738,12 @@ fun MD3ResultScreen(
                     cb.setPrimaryClip(ClipData.newPlainText("Tasks", summary))
                     Toast.makeText(context, "Copied tasks to clipboard!", Toast.LENGTH_SHORT).show()
                 },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 48.dp)
+                    .semantics {
+                        contentDescription = "Copy all tasks to device clipboard"
+                    },
                 shape = MaterialTheme.shapes.medium
             ) {
                 Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -2548,7 +2756,13 @@ fun MD3ResultScreen(
         if (record.rawExtractedText.isNotBlank()) {
             OutlinedCard(
                 onClick = { showRawText = !showRawText },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics {
+                        role = Role.Button
+                        stateDescription = if (showRawText) "Expanded" else "Collapsed"
+                        contentDescription = "Raw Recognized OCR Text"
+                    },
                 shape = MaterialTheme.shapes.medium,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
@@ -2561,7 +2775,7 @@ fun MD3ResultScreen(
                         Text("Raw Recognized Text", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                         Icon(
                             if (showRawText) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                            contentDescription = null,
+                            contentDescription = if (showRawText) "Collapse" else "Expand",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }

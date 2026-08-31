@@ -24,7 +24,7 @@ class ExampleRobolectricTest {
   @Test
   fun `test receipt action extraction`() {
     val text = "STARBUCKS COFFEE\nTotal: $14.50\nDate: 10/24/2026\nItem: Caramel Macchiato"
-    val actions = extractActionsFromText(text, "Receipt", "Gemini Nano 3.2B", 35L)
+    val actions = extractActionsFromText(text, "Receipt", "Smart Entity Parser", 35L)
     assertTrue("Should extract at least one action item", actions.isNotEmpty())
     val first = actions.first()
     assertEquals("Finance", first.category)
@@ -33,8 +33,8 @@ class ExampleRobolectricTest {
 
   @Test
   fun `test whiteboard milestone extraction`() {
-    val text = "Sprint Goals:\n• Launch NPU model v2 by Friday\n• Verify PC link"
-    val actions = extractActionsFromText(text, "Whiteboard", "Phi-3 Mini", 40L)
+    val text = "Sprint Goals:\n• Launch OCR v2 by Friday\n• Verify PC link"
+    val actions = extractActionsFromText(text, "Whiteboard", "Smart Entity Parser", 40L)
     assertTrue("Should extract milestone actions", actions.isNotEmpty())
     assertEquals("Milestone", actions.first().category)
   }
@@ -42,9 +42,8 @@ class ExampleRobolectricTest {
   @Test
   fun `test business card contact extraction`() {
     val text = "Alex Rivera\nVP Engineering, Horizon AI\nalex@horizon.ai\n+1-555-0199"
-    val actions = extractActionsFromText(text, "Business Card", "Gemini Nano 3.2B", 25L)
+    val actions = extractActionsFromText(text, "Business Card", "Smart Entity Parser", 25L)
     assertTrue("Should extract contact actions", actions.isNotEmpty())
     assertEquals("Contact", actions.first().category)
   }
 }
-
