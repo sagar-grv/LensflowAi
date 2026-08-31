@@ -2,8 +2,8 @@ package com.example
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.example.domain.parser.SmartEntityParser
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -24,7 +24,7 @@ class ExampleRobolectricTest {
   @Test
   fun `test receipt action extraction`() {
     val text = "STARBUCKS COFFEE\nTotal: $14.50\nDate: 10/24/2026\nItem: Caramel Macchiato"
-    val actions = extractActionsFromText(text, "Receipt", "Smart Entity Parser", 35L)
+    val actions = SmartEntityParser.parseActions(text, "Receipt", 35L)
     assertTrue("Should extract at least one action item", actions.isNotEmpty())
     val first = actions.first()
     assertEquals("Finance", first.category)
@@ -34,7 +34,7 @@ class ExampleRobolectricTest {
   @Test
   fun `test whiteboard milestone extraction`() {
     val text = "Sprint Goals:\n• Launch OCR v2 by Friday\n• Verify PC link"
-    val actions = extractActionsFromText(text, "Whiteboard", "Smart Entity Parser", 40L)
+    val actions = SmartEntityParser.parseActions(text, "Whiteboard", 40L)
     assertTrue("Should extract milestone actions", actions.isNotEmpty())
     assertEquals("Milestone", actions.first().category)
   }
@@ -42,7 +42,7 @@ class ExampleRobolectricTest {
   @Test
   fun `test business card contact extraction`() {
     val text = "Alex Rivera\nVP Engineering, Horizon AI\nalex@horizon.ai\n+1-555-0199"
-    val actions = extractActionsFromText(text, "Business Card", "Smart Entity Parser", 25L)
+    val actions = SmartEntityParser.parseActions(text, "Business Card", 25L)
     assertTrue("Should extract contact actions", actions.isNotEmpty())
     assertEquals("Contact", actions.first().category)
   }

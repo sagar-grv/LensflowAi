@@ -2,7 +2,9 @@ package com.example
 
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
-import com.example.ui.theme.MyApplicationTheme
+import com.example.domain.model.TelemetryState
+import com.example.ui.screens.HomeScreen
+import com.example.ui.theme.LensFlowTheme
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.junit.Rule
@@ -22,14 +24,17 @@ class GreetingScreenshotTest {
   @Test
   fun home_screen_screenshot() {
     composeTestRule.setContent {
-      MyApplicationTheme {
-        MD3HomeScreen(
-          onOpenScanner = {},
-          onQuickSample = {},
-          onOpenRecord = {},
-          records = emptyList(),
+      LensFlowTheme {
+        HomeScreen(
+          scans = emptyList(),
+          selectedFilter = "All",
+          onFilterSelect = {},
+          onScanClick = {},
+          onQuickSampleClick = {},
+          onRecordClick = {},
+          onDeleteClick = {},
           isOffline = true,
-          officeKitConnected = true
+          telemetry = TelemetryState()
         )
       }
     }
@@ -37,4 +42,3 @@ class GreetingScreenshotTest {
     composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/home_screen.png")
   }
 }
-
